@@ -1,8 +1,10 @@
 {
   "name": "reentrancy-visualization",
   "version": "0.1.0",
+  "description": "Interactive visualization explaining reentrancy attacks in Ethereum smart contracts",
   "homepage": "https://KingTemi2024.github.io/reentrancy-visualization",
   "private": true,
+  "main": "src/index.js",
   "dependencies": {
     "gh-pages": "^6.0.0",
     "react": "^18.2.0",
@@ -39,5 +41,26 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "keywords": [
+    "ethereum",
+    "smart-contracts",
+    "reentrancy",
+    "security",
+    "defi",
+    "blockchain",
+    "visualization",
+    "education",
+    "web3",
+    "solidity"
+  ],
+  "author": "KingTemi2024",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KingTemi2024/reentrancy-visualization.git"
+  },
+  "bugs": {
+    "url": "https://github.com/KingTemi2024/reentrancy-visualization/issues"
   }
 }
