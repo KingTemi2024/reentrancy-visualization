@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-const ReentrancyVisualization = () => {
+const EnhancedReentrancyVisualization = () => {
   const [step, setStep] = useState(0);
   const [showBasics, setShowBasics] = useState(true);
   const [showUseCase, setShowUseCase] = useState(false);
@@ -194,12 +194,12 @@ const ReentrancyVisualization = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto bg-gray-50 min-h-screen">
+    <div className="p-6 max-w-7xl mx-auto bg-gray-50 rounded-lg shadow-md">
       <h1 className="text-4xl font-bold text-center mb-6 text-gray-800">
-        🛡️ Ethereum Ecosystem: Reentrancy Attack Explained
+        Ethereum Ecosystem: Reentrancy Attack Explained
       </h1>
 
-      {/* Toggle Buttons */}
+      {/* Basics Toggle */}
       <div className="mb-6 text-center space-x-4">
         <button 
           onClick={() => setShowBasics(!showBasics)}
@@ -220,8 +220,9 @@ const ReentrancyVisualization = () => {
         <div className="mb-8 bg-white p-6 rounded-lg shadow">
           <h2 className="text-2xl font-semibold mb-4 text-gray-800">🌐 How Ethereum Actually Works</h2>
           
+          {/* Physical vs Digital Reality */}
           <div className="mb-6 bg-yellow-50 p-4 rounded-lg border-2 border-yellow-300">
-            <h3 className="text-lg font-bold mb-3 text-yellow-800">🤔 Key Question: "How do humans deposit money into a program?"</h3>
+            <h3 className="text-lg font-bold mb-3 text-yellow-800">🤔 Your Question: "How do humans deposit money into a program?"</h3>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="bg-red-100 p-3 rounded border-l-4 border-red-400">
                 <h4 className="font-bold text-red-800 mb-2">❌ What Smart Contracts Are NOT:</h4>
@@ -244,6 +245,7 @@ const ReentrancyVisualization = () => {
             </div>
           </div>
 
+          {/* How Interaction Works */}
           <div className="mb-6 bg-blue-50 p-4 rounded-lg border-2 border-blue-300">
             <h3 className="text-lg font-bold mb-3 text-blue-800">📱 How Humans Actually Interact with Smart Contracts</h3>
             <div className="grid md:grid-cols-4 gap-3">
@@ -309,6 +311,7 @@ const ReentrancyVisualization = () => {
             </div>
           </div>
 
+          {/* Real World Analogy */}
           <div className="bg-indigo-50 p-4 rounded-lg border-2 border-indigo-300">
             <h3 className="text-lg font-bold mb-3 text-indigo-800">🏦 Think of it Like Online Banking</h3>
             <div className="grid md:grid-cols-2 gap-4">
@@ -334,6 +337,29 @@ const ReentrancyVisualization = () => {
               </div>
             </div>
           </div>
+
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-bold mb-3 text-gray-800">🎭 Who is Who in Our Scenario:</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <h4 className="font-semibold text-gray-700 mb-2">Smart Contract (1):</h4>
+                <ul className="text-sm space-y-1 text-gray-600">
+                  <li>• <strong>Marketplace Contract:</strong> Holds everyone's ETH, executes business logic</li>
+                  <li>• Has vulnerable withdrawal function</li>
+                  <li>• No human owner - runs automatically</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-700 mb-2">Human Users with EOAs (4):</h4>
+                <ul className="text-sm space-y-1 text-gray-600">
+                  <li>• <strong>Merchant:</strong> Sells products, earns ETH</li>
+                  <li>• <strong>Vendor:</strong> Supplies goods, expects payment</li>
+                  <li>• <strong>Customer:</strong> Buys products, spends ETH</li>
+                  <li>• <strong>Attacker:</strong> Exploits contract vulnerability</li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -342,6 +368,7 @@ const ReentrancyVisualization = () => {
         <div className="mb-8 bg-white p-6 rounded-lg shadow">
           <h2 className="text-2xl font-semibold mb-4 text-gray-800">🏦 Real-World Use Case: "EthLend" DeFi Protocol</h2>
           
+          {/* The Business Model */}
           <div className="mb-6 bg-green-50 p-4 rounded-lg border-2 border-green-300">
             <h3 className="text-lg font-bold mb-3 text-green-800">💡 The Business: Decentralized Lending Platform</h3>
             <p className="mb-3 text-green-700">
@@ -364,37 +391,210 @@ const ReentrancyVisualization = () => {
             </div>
           </div>
 
-          <div className="mb-6 bg-red-50 p-4 rounded-lg border-2 border-red-300">
-            <h3 className="text-lg font-bold mb-3 text-red-800">🐛 The Vulnerable Code</h3>
-            <div className="bg-gray-900 p-4 rounded text-green-400 font-mono text-sm overflow-x-auto">
-              <pre>{`// VULNERABLE CODE IN ETHLEND CONTRACT
-function withdraw(uint amount) public {
-    require(deposits[msg.sender] >= amount, "Insufficient balance");
-    
-    // 🚨 VULNERABILITY: External call BEFORE state update
-    (bool success, ) = msg.sender.call{value: amount}("");
-    require(success, "Transfer failed");
-    
-    // 🚨 State updated AFTER external call - TOO LATE!  
-    deposits[msg.sender] -= amount;
-}`}</pre>
+          {/* The Actors Involved */}
+          <div className="mb-6 bg-blue-50 p-4 rounded-lg border-2 border-blue-300">
+            <h3 className="text-lg font-bold mb-3 text-blue-800">👥 Key Actors in This Ecosystem</h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-bold text-gray-700 mb-3">🛠️ Development & Security Actors:</h4>
+                <div className="space-y-3">
+                  <div className="bg-white p-3 rounded border-l-4 border-purple-400">
+                    <div className="font-semibold">Smart Contract Developer</div>
+                    <div className="text-sm text-gray-600">Writes the lending protocol code</div>
+                    <div className="text-xs text-red-600">⚠️ May introduce vulnerability accidentally</div>
+                  </div>
+                  <div className="bg-white p-3 rounded border-l-4 border-yellow-400">
+                    <div className="font-semibold">Security Auditor</div>
+                    <div className="text-sm text-gray-600">Reviews code for vulnerabilities</div>
+                    <div className="text-xs text-red-600">⚠️ May miss the reentrancy bug</div>
+                  </div>
+                  <div className="bg-white p-3 rounded border-l-4 border-green-400">
+                    <div className="font-semibold">Protocol Team</div>
+                    <div className="text-sm text-gray-600">Deploys contract to mainnet</div>
+                    <div className="text-xs text-red-600">⚠️ Launches without proper testing</div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-700 mb-3">👨‍💼 User Actors:</h4>
+                <div className="space-y-3">
+                  <div className="bg-white p-3 rounded border-l-4 border-blue-400">
+                    <div className="font-semibold">Alice (Lender)</div>
+                    <div className="text-sm text-gray-600">Deposits 50 ETH to earn interest</div>
+                    <div className="text-xs text-green-600">✅ Honest user, victim of attack</div>
+                  </div>
+                  <div className="bg-white p-3 rounded border-l-4 border-orange-400">
+                    <div className="font-semibold">Bob (Borrower)</div>
+                    <div className="text-sm text-gray-600">Borrows 30 ETH for trading</div>
+                    <div className="text-xs text-green-600">✅ Honest user, victim of attack</div>
+                  </div>
+                  <div className="bg-white p-3 rounded border-l-4 border-red-400">
+                    <div className="font-semibold">Eve (Attacker)</div>
+                    <div className="text-sm text-gray-600">Hacker who finds the vulnerability</div>
+                    <div className="text-xs text-red-600">❌ Malicious actor, exploits the bug</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="mb-6 bg-purple-50 p-4 rounded-lg border-2 border-purple-300">
-            <h3 className="text-lg font-bold mb-3 text-purple-800">🦹‍♀️ Attacker's Malicious Contract</h3>
+          {/* Timeline of Events */}
+          <div className="mb-6 bg-gray-50 p-4 rounded-lg border-2 border-gray-300">
+            <h3 className="text-lg font-bold mb-3 text-gray-800">📅 Timeline: How the Vulnerability Develops</h3>
+            <div className="space-y-4">
+              <div className="flex items-start space-x-4">
+                <div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">1</div>
+                <div>
+                  <div className="font-semibold">Week 1: Development Phase</div>
+                  <div className="text-sm text-gray-600">Developer creates withdrawal function but uses wrong pattern (external call before state update)</div>
+                </div>
+              </div>
+              <div className="flex items-start space-x-4">
+                <div className="bg-yellow-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">2</div>
+                <div>
+                  <div className="font-semibold">Week 2: Audit Phase</div>
+                  <div className="text-sm text-gray-600">Security auditor reviews code but focuses on other issues, misses reentrancy vulnerability</div>
+                </div>
+              </div>
+              <div className="flex items-start space-x-4">
+                <div className="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">3</div>
+                <div>
+                  <div className="font-semibold">Week 3: Launch Phase</div>
+                  <div className="text-sm text-gray-600">Protocol launches, Alice deposits 50 ETH, Bob borrows 30 ETH - everything works normally</div>
+                </div>
+              </div>
+              <div className="flex items-start space-x-4">
+                <div className="bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold">4</div>
+                <div>
+                  <div className="font-semibold">Week 4: Attack Phase</div>
+                  <div className="text-sm text-gray-600">Eve discovers vulnerability, performs reentrancy attack, drains the protocol</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* The Vulnerable Code */}
+          <div className="mb-6 bg-red-50 p-4 rounded-lg border-2 border-red-300">
+            <h3 className="text-lg font-bold mb-3 text-red-800">🐛 Where the Vulnerability Comes In</h3>
+            <p className="mb-3 text-red-700">
+              The developer wrote the withdrawal function incorrectly. Here's the vulnerable code in the EthLend smart contract:
+            </p>
             <div className="bg-gray-900 p-4 rounded text-green-400 font-mono text-sm overflow-x-auto">
-              <pre>{`// ATTACKER'S MALICIOUS CONTRACT
+              <pre>{`// VULNERABLE CODE IN ETHLEND CONTRACT
+contract EthLend {
+    mapping(address => uint) public deposits;
+    mapping(address => uint) public borrowings;
+    
+    function withdraw(uint amount) public {
+        require(deposits[msg.sender] >= amount, "Insufficient balance");
+        
+        // 🚨 VULNERABILITY: External call BEFORE state update
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success, "Transfer failed");
+        
+        // 🚨 State updated AFTER external call - TOO LATE!  
+        deposits[msg.sender] -= amount;
+    }
+}`}</pre>
+            </div>
+            <div className="mt-3 text-sm text-red-700">
+              <strong>The Problem:</strong> When Eve withdraws ETH, the contract sends her the money BEFORE updating her balance. 
+              This means she can call withdraw() again while her balance still shows the original amount.
+            </div>
+          </div>
+
+          {/* Attack Mechanism Step by Step */}
+          <div className="mb-6 bg-orange-50 p-4 rounded-lg border-2 border-orange-300">
+            <h3 className="text-lg font-bold mb-3 text-orange-800">⚔️ Step-by-Step Attack Mechanism</h3>
+            
+            <div className="space-y-4">
+              <div className="bg-white p-4 rounded border-l-4 border-blue-400">
+                <div className="font-semibold mb-2">🎯 Pre-Attack Setup:</div>
+                <ul className="text-sm space-y-1">
+                  <li>• Alice (honest lender) deposits 50 ETH into EthLend</li>
+                  <li>• Bob (honest borrower) borrows 30 ETH</li>
+                  <li>• Eve (attacker) deposits 20 ETH to gain legitimacy</li>
+                  <li>• Protocol now holds 70 ETH total (50 + 20)</li>
+                </ul>
+              </div>
+
+              <div className="bg-white p-4 rounded border-l-4 border-red-400">
+                <div className="font-semibold mb-2">💥 The Attack Sequence:</div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <div className="font-medium text-red-600 mb-2">Phase 1: Initial Call</div>
+                    <ol className="text-sm space-y-1 list-decimal list-inside">
+                      <li>Eve calls withdraw(20 ETH)</li>
+                      <li>Contract checks: Eve has 20 ETH ✅</li>
+                      <li>Contract sends 20 ETH to Eve</li>
+                      <li>🚨 Eve's receive() function triggers</li>
+                    </ol>
+                  </div>
+                  <div>
+                    <div className="font-medium text-red-600 mb-2">Phase 2: Reentrancy</div>
+                    <ol className="text-sm space-y-1 list-decimal list-inside">
+                      <li>Eve's contract calls withdraw(20 ETH) again</li>
+                      <li>Contract checks: Eve STILL shows 20 ETH ✅</li>
+                      <li>Contract sends another 20 ETH to Eve</li>
+                      <li>Now Eve has received 40 ETH total</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white p-4 rounded border-l-4 border-gray-400">
+                <div className="font-semibold mb-2">📊 Attack Result:</div>
+                <div className="grid md:grid-cols-3 gap-4 text-sm">
+                  <div className="text-center">
+                    <div className="font-bold text-red-600">Eve (Attacker)</div>
+                    <div>Withdrew: 40 ETH</div>
+                    <div>Should have gotten: 20 ETH</div>
+                    <div className="text-red-600">Profit: +20 ETH</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-bold text-orange-600">Protocol</div>
+                    <div>Remaining: 30 ETH</div>
+                    <div>Should have: 50 ETH</div>
+                    <div className="text-red-600">Loss: -20 ETH</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-bold text-blue-600">Alice (Lender)</div>
+                    <div>Can withdraw: ~15 ETH</div>
+                    <div>Should get: 50 ETH</div>
+                    <div className="text-red-600">Loss: -35 ETH</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Eve's Attack Contract */}
+          <div className="mb-6 bg-purple-50 p-4 rounded-lg border-2 border-purple-300">
+            <h3 className="text-lg font-bold mb-3 text-purple-800">🦹‍♀️ Eve's Attack Contract Code</h3>
+            <p className="mb-3 text-purple-700">
+              Eve didn't just use a regular wallet - she deployed her own malicious smart contract to perform the attack:
+            </p>
+            <div className="bg-gray-900 p-4 rounded text-green-400 font-mono text-sm overflow-x-auto">
+              <pre>{`// EVE'S MALICIOUS CONTRACT
 contract MaliciousAttacker {
     EthLend public target;
     uint public attackAmount = 20 ether;
     
+    constructor(address _target) {
+        target = EthLend(_target);
+    }
+    
     function attack() external {
+        // First deposit to establish legitimacy
         target.deposit{value: attackAmount}();
+        
+        // Then trigger the reentrancy attack
         target.withdraw(attackAmount);
     }
     
+    // This function gets called when receiving ETH
     receive() external payable {
+        // If target still has ETH and we haven't drained it
         if (address(target).balance >= attackAmount) {
             target.withdraw(attackAmount); // 🔄 REENTRANCY!
         }
@@ -402,11 +602,46 @@ contract MaliciousAttacker {
 }`}</pre>
             </div>
           </div>
+
+          {/* Actors' Roles in Enabling Attack */}
+          <div className="bg-yellow-50 p-4 rounded-lg border-2 border-yellow-300">
+            <h3 className="text-lg font-bold mb-3 text-yellow-800">🎭 How Each Actor Enabled the Attack</h3>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-bold text-red-700 mb-2">❌ Actors Who Failed:</h4>
+                <div className="space-y-2">
+                  <div className="text-sm">
+                    <strong>Developer:</strong> Used wrong pattern, didn't follow security best practices
+                  </div>
+                  <div className="text-sm">
+                    <strong>Auditor:</strong> Failed to catch critical vulnerability during review
+                  </div>
+                  <div className="text-sm">
+                    <strong>Protocol Team:</strong> Rushed to market without thorough testing
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-bold text-green-700 mb-2">✅ Actors Who Were Victims:</h4>
+                <div className="space-y-2">
+                  <div className="text-sm">
+                    <strong>Alice & Bob:</strong> Trusted the protocol, lost their funds
+                  </div>
+                  <div className="text-sm">
+                    <strong>DeFi Community:</strong> Lost trust in new protocols
+                  </div>
+                  <div className="text-sm">
+                    <strong>Ethereum Ecosystem:</strong> Reputation damage from hack
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
       
-      {/* Main Simulation */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+        {/* Participants */}
         <div className="lg:col-span-3 bg-white p-4 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-4 text-gray-700">Ecosystem Participants</h2>
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
@@ -433,6 +668,7 @@ contract MaliciousAttacker {
           </div>
         </div>
 
+        {/* Call Stack */}
         <div className="bg-white p-4 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-4 text-gray-700">Transaction Flow</h2>
           <div className="bg-gray-900 p-3 rounded text-green-400 font-mono text-xs overflow-x-auto">
@@ -451,7 +687,7 @@ contract MaliciousAttacker {
         </div>
       </div>
 
-      {/* Controls */}
+      {/* Attack Progress */}
       <div className="bg-white p-6 rounded-lg shadow mb-6">
         <h2 className="text-xl font-semibold mb-4 text-gray-700">
           Reentrancy Attack Simulation - Step {step} of 15
@@ -467,21 +703,21 @@ contract MaliciousAttacker {
         <div className="flex justify-center space-x-4 mb-4">
           <button 
             onClick={reset} 
-            className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 transition-colors"
           >
             🔄 Reset
           </button>
           <button 
             onClick={nextStep} 
             disabled={step >= 15 || isAutoPlaying}
-            className={`px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors ${(step >= 15 || isAutoPlaying) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors ${(step >= 15 || isAutoPlaying) ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             ▶️ Next Step
           </button>
           <button 
             onClick={autoPlay} 
             disabled={step >= 15 || isAutoPlaying}
-            className={`px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors ${(step >= 15 || isAutoPlaying) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors ${(step >= 15 || isAutoPlaying) ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {isAutoPlaying ? '⏸️ Playing...' : '🚀 Auto Play'}
           </button>
@@ -522,37 +758,140 @@ contract MaliciousAttacker {
         </div>
       </div>
 
-      {/* Educational Footer */}
+      {/* Enhanced Educational Section */}
       <div className="bg-white p-6 rounded-lg shadow">
         <h2 className="text-2xl font-semibold mb-4 text-gray-700">
-          🛡️ The Secure Solution
+          🎓 Understanding the Fundamental Components
         </h2>
-        <div className="bg-green-50 p-4 rounded font-mono text-sm border-l-4 border-green-500">
-          <pre>{`// SECURE PATTERN: Update state BEFORE external calls
+        
+        <div className="space-y-6 text-gray-700">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-xl font-medium mb-3">❓ Key Questions Answered</h3>
+              <div className="space-y-4">
+                <div className="bg-blue-50 p-3 rounded border-l-4 border-blue-500">
+                  <p><strong>Q: Is Ether the smart contract?</strong></p>
+                  <p className="text-sm mt-1">A: No! Ether (ETH) is the currency that flows between accounts and smart contracts. Think of ETH as digital money.</p>
+                </div>
+                
+                <div className="bg-green-50 p-3 rounded border-l-4 border-green-500">
+                  <p><strong>Q: Who owns the wallet?</strong></p>
+                  <p className="text-sm mt-1">A: Humans own wallets (EOAs) with private keys. Smart contracts have no owners - they're autonomous programs.</p>
+                </div>
+                
+                <div className="bg-purple-50 p-3 rounded border-l-4 border-purple-500">
+                  <p><strong>Q: Are merchants different users?</strong></p>
+                  <p className="text-sm mt-1">A: Yes! Each merchant, vendor, customer is a separate human with their own wallet address.</p>
+                </div>
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="text-xl font-medium mb-3">🏗️ The Architecture</h3>
+              <div className="bg-gray-50 p-4 rounded">
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 bg-blue-500 rounded mr-3"></div>
+                    <span><strong>Ethereum Blockchain:</strong> The foundation layer</span>
+                  </div>
+                  <div className="flex items-center ml-4">
+                    <div className="w-4 h-4 bg-green-500 rounded mr-3"></div>
+                    <span><strong>ETH Currency:</strong> Flows between accounts</span>
+                  </div>
+                  <div className="flex items-center ml-4">
+                    <div className="w-4 h-4 bg-purple-500 rounded mr-3"></div>
+                    <span><strong>Smart Contracts:</strong> Autonomous programs</span>
+                  </div>
+                  <div className="flex items-center ml-4">
+                    <div className="w-4 h-4 bg-orange-500 rounded mr-3"></div>
+                    <span><strong>EOAs (Wallets):</strong> Human-controlled accounts</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xl font-medium mb-3">⚡ How the Attack Works</h3>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="bg-red-50 p-4 rounded border-l-4 border-red-500">
+                <h4 className="font-medium mb-2">1. Initial Setup</h4>
+                <p className="text-sm">
+                  Humans deposit ETH into smart contract. Contract tracks balances internally but makes vulnerable external calls.
+                </p>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded border-l-4 border-yellow-500">
+                <h4 className="font-medium mb-2">2. The Exploit</h4>
+                <p className="text-sm">
+                  Attacker's wallet receives ETH from contract, then immediately calls back into the same contract before it updates its internal records.
+                </p>
+              </div>
+              <div className="bg-orange-50 p-4 rounded border-l-4 border-orange-500">
+                <h4 className="font-medium mb-2">3. The Damage</h4>
+                <p className="text-sm">
+                  Contract sends ETH multiple times to attacker's wallet, draining the contract and affecting all other users.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-indigo-50 p-4 rounded border-l-4 border-indigo-500">
+            <h3 className="text-xl font-medium mb-3">🧠 Better Analogy: Online Banking Glitch</h3>
+            <p className="mb-3">
+              Imagine an online banking website (smart contract) with a flawed withdrawal system. When you request money online, the system transfers funds to your account but updates its internal records AFTER the transfer completes.
+            </p>
+            <p className="mb-3">
+              A clever hacker (attacker) realizes they can rapidly click "withdraw" multiple times while the first request is still processing, effectively getting the same money sent to their account multiple times.
+            </p>
+            <p className="mb-3">
+              <strong>Key Point:</strong> No physical ATM machine exists - it's all happening through websites and digital transactions, just like how you bank online today.
+            </p>
+            <p>
+              The banking system's digital vault (smart contract) gets drained, and other customers (honest users) can't access their funds.
+            </p>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded border-l-4 border-gray-500">
+            <h3 className="text-xl font-medium mb-3">🌍 Where Does This Actually Happen?</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <h4 className="font-semibold mb-2">Physical Reality:</h4>
+                <ul className="text-sm space-y-1">
+                  <li>• You sit at your computer/phone</li>
+                  <li>• Visit a website (like Uniswap, OpenSea)</li>
+                  <li>• Website connects to your MetaMask wallet</li>
+                  <li>• You click "Deposit ETH" or "Buy Item"</li>
+                  <li>• Your wallet sends transaction to Ethereum</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-2">Behind the Scenes:</h4>
+                <ul className="text-sm space-y-1">
+                  <li>• Transaction broadcast to Ethereum network</li>
+                  <li>• Thousands of computers process it</li>
+                  <li>• Smart contract code executes automatically</li>
+                  <li>• ETH balance updated in contract's memory</li>
+                  <li>• All records stored on blockchain forever</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xl font-medium mb-3">🛡️ The Solution: Secure Smart Contract Pattern</h3>
+            <div className="bg-green-50 p-4 rounded font-mono text-sm border-l-4 border-green-500">
+              <pre>{`// SECURE PATTERN: Update internal records BEFORE sending ETH
 function withdraw(uint amount) public {
     require(balances[msg.sender] >= amount);
     
-    // 1. Update state FIRST
+    // 1. Update the smart contract's internal records FIRST
     balances[msg.sender] -= amount;
     
-    // 2. THEN make external call
+    // 2. THEN send ETH to the user's wallet
     (bool success, ) = msg.sender.call{value: amount}("");
     require(success);
 }`}</pre>
-        </div>
-        
-        <div className="mt-6 grid md:grid-cols-3 gap-4">
-          <div className="bg-blue-50 p-4 rounded border-l-4 border-blue-500">
-            <h4 className="font-medium mb-2">🔍 Checks</h4>
-            <p className="text-sm">Validate all conditions and requirements before proceeding.</p>
-          </div>
-          <div className="bg-green-50 p-4 rounded border-l-4 border-green-500">
-            <h4 className="font-medium mb-2">⚡ Effects</h4>
-            <p className="text-sm">Update all state variables and internal accounting.</p>
-          </div>
-          <div className="bg-purple-50 p-4 rounded border-l-4 border-purple-500">
-            <h4 className="font-medium mb-2">🌐 Interactions</h4>
-            <p className="text-sm">Make external calls to other contracts last.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -560,4 +899,4 @@ function withdraw(uint amount) public {
   );
 };
 
-export default ReentrancyVisualization;
+export default EnhancedReentrancyVisualization;
