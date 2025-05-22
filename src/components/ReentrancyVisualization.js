@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
-const EnhancedReentrancyVisualization = () => {
+const ReentrancyVisualization = () => {
   const [step, setStep] = useState(0);
   const [showBasics, setShowBasics] = useState(true);
   const [showUseCase, setShowUseCase] = useState(false);
@@ -899,4 +899,4 @@ function withdraw(uint amount) public {
   );
 };
 
-export default EnhancedReentrancyVisualization;
+export default ReentrancyVisualization;
