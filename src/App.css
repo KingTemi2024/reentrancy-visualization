@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.App {
+  text-align: center;
+  min-height: 100vh;
+  background-color: #f8fafc;
+}
+
+/* Custom scrollbar for logs */
+.bg-gray-900::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bg-gray-900::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+.bg-gray-900::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 3px;
+}
+
+.bg-gray-900::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Animation for pulse effect */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Smooth transitions */
+* {
+  transition: all 0.3s ease;
+}
+
+/* Custom gradient for progress bar */
+.bg-gradient-to-r {
+  background: linear-gradient(to right, #3b82f6, #ef4444);
+}
+
+/* Responsive typography */
+@media (max-width: 768px) {
+  .text-4xl {
+    font-size: 2rem;
+  }
+  
+  .text-3xl {
+    font-size: 1.5rem;
+  }
+  
+  .text-2xl {
+    font-size: 1.25rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  .bg-gray-900 {
+    background: white !important;
+    color: black !important;
+  }
+  
+  button {
+    display: none;
+  }
+}
