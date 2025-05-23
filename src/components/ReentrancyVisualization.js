@@ -806,7 +806,7 @@ contract MaliciousAttacker {
 
         {/* Call Stack */}
         <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">Transaction Flow</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-700">What's Happening</h2>
           <div className="bg-gray-900 p-3 rounded text-green-400 font-mono text-xs overflow-x-auto">
             {callStack.length > 0 ? (
               <div className="space-y-1">
@@ -817,7 +817,7 @@ contract MaliciousAttacker {
                 ))}
               </div>
             ) : (
-              <div>No active transactions</div>
+              <div>No activity yet</div>
             )}
           </div>
         </div>
