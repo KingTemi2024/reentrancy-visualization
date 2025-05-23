@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/reentrancy-visualization/static/css/main.ee1f4da7.css",
+    "main.js": "/reentrancy-visualization/static/js/main.d315e42c.js",
+    "index.html": "/reentrancy-visualization/index.html",
+    "main.ee1f4da7.css.map": "/reentrancy-visualization/static/css/main.ee1f4da7.css.map",
+    "main.d315e42c.js.map": "/reentrancy-visualization/static/js/main.d315e42c.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.ee1f4da7.css",
+    "static/js/main.d315e42c.js"
+  ]
+}
