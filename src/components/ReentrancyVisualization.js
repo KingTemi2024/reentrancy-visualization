@@ -4,6 +4,7 @@ const ReentrancyVisualization = () => {
   const [step, setStep] = useState(0);
   const [showBasics, setShowBasics] = useState(true);
   const [showUseCase, setShowUseCase] = useState(false);
+  const [showSimple, setShowSimple] = useState(false);
   const [participants, setParticipants] = useState({
     marketplace: { balance: 100, role: 'Smart Contract (Marketplace)', type: 'contract', address: '0x123...abc' },
     merchant: { balance: 15, role: 'Human User (Merchant)', type: 'eoa', earnings: 25, address: '0x456...def' },
@@ -199,8 +200,14 @@ const ReentrancyVisualization = () => {
         Ethereum Ecosystem: Reentrancy Attack Explained
       </h1>
 
-      {/* Basics Toggle */}
+      {/* Toggle Buttons */}
       <div className="mb-6 text-center space-x-4">
+        <button 
+          onClick={() => setShowSimple(!showSimple)}
+          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+        >
+          {showSimple ? 'Hide' : 'Show'} Simple Explanation
+        </button>
         <button 
           onClick={() => setShowBasics(!showBasics)}
           className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
@@ -214,6 +221,148 @@ const ReentrancyVisualization = () => {
           {showUseCase ? 'Hide' : 'Show'} Real-World Use Case
         </button>
       </div>
+
+      {/* Simple Explanation Section */}
+      {showSimple && (
+        <div className="mb-8 bg-white p-6 rounded-lg shadow border-2 border-green-300">
+          <h2 className="text-2xl font-semibold mb-4 text-gray-800">🟢 Super Simple Explanation (For Complete Beginners)</h2>
+          
+          {/* What is This About */}
+          <div className="mb-6 bg-green-50 p-4 rounded-lg border-2 border-green-200">
+            <h3 className="text-xl font-bold mb-3 text-green-800">🤷‍♂️ What Are We Even Talking About?</h3>
+            <div className="text-lg text-green-700 space-y-3">
+              <p><strong>Think of it like this:</strong> Imagine you have a magical vending machine on the internet that holds everyone's money and automatically gives it back when asked.</p>
+              <p><strong>The problem:</strong> Someone found a way to trick the machine into giving them money twice for the same request.</p>
+              <p><strong>The result:</strong> The machine runs out of money, so honest people can't get their money back.</p>
+            </div>
+          </div>
+
+          {/* Just 3 Characters */}
+          <div className="mb-6 bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
+            <h3 className="text-xl font-bold mb-3 text-blue-800">👥 Our 3 Main Characters</h3>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="bg-white p-4 rounded-lg border text-center">
+                <div className="text-3xl mb-2">🤖</div>
+                <div className="font-bold text-purple-600">The Robot Cashier</div>
+                <div className="text-sm text-gray-600 mt-2">
+                  • This is the "smart contract"
+                  • It's like an automatic cashier
+                  • Holds everyone's money
+                  • Follows simple rules
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-lg border text-center">
+                <div className="text-3xl mb-2">😇</div>
+                <div className="font-bold text-blue-600">Alice (Good Person)</div>
+                <div className="text-sm text-gray-600 mt-2">
+                  • Put $100 into the robot
+                  • Expects to get it back later
+                  • Did nothing wrong
+                  • Gets hurt by the attack
+                </div>
+              </div>
+              <div className="bg-white p-4 rounded-lg border text-center">
+                <div className="text-3xl mb-2">😈</div>
+                <div className="font-bold text-red-600">Bob (Bad Person)</div>
+                <div className="text-sm text-gray-600 mt-2">
+                  • Put $50 into the robot
+                  • Found a way to cheat
+                  • Steals extra money
+                  • Ruins it for everyone
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* The Simple Story */}
+          <div className="mb-6 bg-yellow-50 p-4 rounded-lg border-2 border-yellow-200">
+            <h3 className="text-xl font-bold mb-3 text-yellow-800">📖 The Story in Simple Steps</h3>
+            <div className="space-y-4">
+              <div className="flex items-start space-x-3">
+                <div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">1</div>
+                <div>
+                  <div className="font-semibold">Setting Up</div>
+                  <div className="text-sm text-gray-600">Alice puts $100 into the Robot Cashier. Bob puts $50. Robot now holds $150 total.</div>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3">
+                <div className="bg-yellow-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">2</div>
+                <div>
+                  <div className="font-semibold">The Trick</div>
+                  <div className="text-sm text-gray-600">Bob asks for his $50 back. While the Robot is getting the money, Bob quickly asks for another $50.</div>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3">
+                <div className="bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">3</div>
+                <div>
+                  <div className="font-semibold">The Problem</div>
+                  <div className="text-sm text-gray-600">The Robot is confused! It gives Bob $50 twice because it forgot it already gave him money once.</div>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3">
+                <div className="bg-gray-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">4</div>
+                <div>
+                  <div className="font-semibold">The Damage</div>
+                  <div className="text-sm text-gray-600">Robot now only has $50 left, but Alice wants her $100. There's not enough money for everyone!</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Why This Matters */}
+          <div className="mb-6 bg-red-50 p-4 rounded-lg border-2 border-red-200">
+            <h3 className="text-xl font-bold mb-3 text-red-800">❗ Why Should You Care?</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <h4 className="font-semibold mb-2 text-red-700">Real Money at Risk:</h4>
+                <ul className="text-sm space-y-1 text-red-600">
+                  <li>• This happens with real cryptocurrency</li>
+                  <li>• People lose thousands or millions of dollars</li>
+                  <li>• Once money is stolen, it's usually gone forever</li>
+                  <li>• No bank or government can help you</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-2 text-red-700">It Happens Often:</h4>
+                <ul className="text-sm space-y-1 text-red-600">
+                  <li>• Hundreds of these attacks happen every year</li>
+                  <li>• Even big, trusted projects get hacked</li>
+                  <li>• Hackers steal billions of dollars annually</li>
+                  <li>• Regular people lose their life savings</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* The Lesson */}
+          <div className="bg-purple-50 p-4 rounded-lg border-2 border-purple-200">
+            <h3 className="text-xl font-bold mb-3 text-purple-800">🎓 The Big Lesson</h3>
+            <div className="text-purple-700 space-y-2">
+              <p><strong>For Regular People:</strong> Be very careful where you put your cryptocurrency. Only use well-tested, popular platforms.</p>
+              <p><strong>For Developers:</strong> Writing secure code is really hard. Always get experts to check your work before handling real money.</p>
+              <p><strong>For Everyone:</strong> This technology is powerful but dangerous. Understand the risks before you invest.</p>
+            </div>
+          </div>
+
+          {/* Real Example */}
+          <div className="mt-6 bg-gray-50 p-4 rounded-lg border-2 border-gray-300">
+            <h3 className="text-xl font-bold mb-3 text-gray-800">🌍 Real Example That Happened</h3>
+            <div className="bg-white p-4 rounded border-l-4 border-red-400">
+              <div className="font-semibold text-red-700 mb-2">The DAO Hack (2016)</div>
+              <ul className="text-sm space-y-1 text-gray-600">
+                <li>• A "Robot Cashier" called The DAO held $150 million</li>
+                <li>• A hacker used this exact trick to steal $50 million</li>
+                <li>• Thousands of people lost their money</li>
+                <li>• It was so bad that Ethereum had to "rewind" the entire system</li>
+                <li>• This created a permanent split in the cryptocurrency community</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Ethereum Basics Section */}
       {showBasics && (
