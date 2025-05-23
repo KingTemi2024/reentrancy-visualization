@@ -6,11 +6,9 @@ const ReentrancyVisualization = () => {
   const [showUseCase, setShowUseCase] = useState(false);
   const [showSimple, setShowSimple] = useState(false);
   const [participants, setParticipants] = useState({
-    marketplace: { balance: 100, role: 'Smart Contract (Marketplace)', type: 'contract', address: '0x123...abc' },
-    merchant: { balance: 15, role: 'Human User (Merchant)', type: 'eoa', earnings: 25, address: '0x456...def' },
-    vendor: { balance: 20, role: 'Human User (Vendor)', type: 'eoa', earnings: 30, address: '0x789...ghi' },
-    user: { balance: 50, role: 'Human User (Customer)', type: 'eoa', spent: 0, address: '0xabc...123' },
-    attacker: { balance: 10, role: 'Human User (Attacker)', type: 'eoa', earnings: 20, address: '0xdef...456' }
+    marketplace: { balance: 150, role: 'Magic Money Robot', type: 'contract', address: '🤖 Robot' },
+    alice: { balance: 0, role: 'Alice (Good Person)', type: 'eoa', deposited: 100, address: '😇 Alice' },
+    bob: { balance: 0, role: 'Bob (Bad Person)', type: 'eoa', deposited: 50, address: '😈 Bob' }
   });
   const [callStack, setCallStack] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -29,22 +27,20 @@ const ReentrancyVisualization = () => {
   const reset = () => {
     setStep(0);
     setParticipants({
-      marketplace: { balance: 100, role: 'Smart Contract (Marketplace)', type: 'contract', address: '0x123...abc' },
-      merchant: { balance: 15, role: 'Human User (Merchant)', type: 'eoa', earnings: 25, address: '0x456...def' },
-      vendor: { balance: 20, role: 'Human User (Vendor)', type: 'eoa', earnings: 30, address: '0x789...ghi' },
-      user: { balance: 50, role: 'Human User (Customer)', type: 'eoa', spent: 0, address: '0xabc...123' },
-      attacker: { balance: 10, role: 'Human User (Attacker)', type: 'eoa', earnings: 20, address: '0xdef...456' }
+      marketplace: { balance: 150, role: 'Magic Money Robot', type: 'contract', address: '🤖 Robot' },
+      alice: { balance: 0, role: 'Alice (Good Person)', type: 'eoa', deposited: 100, address: '😇 Alice' },
+      bob: { balance: 0, role: 'Bob (Bad Person)', type: 'eoa', deposited: 50, address: '😈 Bob' }
     });
     setCallStack([]);
     setLogs([]);
     setIsAutoPlaying(false);
     setActiveParticipant(null);
-    addLog("🔄 Ethereum ecosystem reset - All accounts ready", 'system');
-    addLog("📋 1 Smart Contract + 4 Human Users + ETH Currency", 'info');
+    addLog("🔄 Money Robot reset - Ready to hold everyone's money!", 'system');
+    addLog("📋 1 Magic Robot + 2 People + Digital Money", 'info');
   };
 
   const nextStep = () => {
-    if (step >= 15) return;
+    if (step >= 8) return;
     
     setStep(prevStep => {
       const newStep = prevStep + 1;
@@ -56,93 +52,51 @@ const ReentrancyVisualization = () => {
   const executeStep = (stepNum) => {
     switch(stepNum) {
       case 1:
-        addLog("👤 Customer (EOA) sends transaction to Smart Contract", 'info');
-        setActiveParticipant('user');
+        addLog("😇 Alice puts $100 into the Magic Money Robot", 'info');
+        setActiveParticipant('alice');
         setParticipants(prev => ({
           ...prev,
-          user: { ...prev.user, balance: prev.user.balance - 10, spent: prev.user.spent + 10 },
-          marketplace: { ...prev.marketplace, balance: prev.marketplace.balance + 10 }
+          alice: { ...prev.alice, balance: 100 }
         }));
         break;
       case 2:
-        addLog("🏪 Smart Contract updates merchant's earnings internally", 'info');
+        addLog("😈 Bob puts $50 into the Magic Money Robot", 'info');
+        setActiveParticipant('bob');
         setParticipants(prev => ({
           ...prev,
-          merchant: { ...prev.merchant, earnings: prev.merchant.earnings + 10 }
+          bob: { ...prev.bob, balance: 50 }
         }));
-        setActiveParticipant('merchant');
         break;
       case 3:
-        addLog("🚨 ATTACK: Attacker (EOA) calls vulnerable withdraw function", 'danger');
-        setActiveParticipant('attacker');
-        setCallStack(["Attacker EOA → Smart Contract"]);
+        addLog("🚨 THE TRICK: Bob asks for his $50 back", 'warning');
+        setActiveParticipant('bob');
+        setCallStack(["Bob asks Robot for $50"]);
         break;
       case 4:
-        addLog("🔍 Smart Contract checks: Attacker has 20 ETH earnings (✓)", 'info');
-        setCallStack(["Attacker EOA → Smart Contract.withdraw(20)"]);
+        addLog("🤖 Robot says 'OK Bob, here's your $50!' and starts sending money", 'info');
+        setCallStack(["Bob asks Robot for $50", "Robot sends $50 to Bob"]);
         break;
       case 5:
-        addLog("⚠️ CRITICAL: Smart Contract makes external call to Attacker EOA", 'warning');
-        setCallStack(["Attacker EOA → Smart Contract.withdraw(20)", "Smart Contract → Attacker EOA.receive()"]);
+        addLog("⚡ SUPER FAST: While Robot is sending money, Bob asks AGAIN!", 'danger');
+        setCallStack(["Bob asks Robot for $50", "Robot sends $50 to Bob", "Bob asks AGAIN for $50!"]);
         break;
       case 6:
-        addLog("🔄 REENTRANCY: Attacker's EOA calls Smart Contract again!", 'danger');
-        setCallStack([
-          "Attacker EOA → Smart Contract.withdraw(20)", 
-          "Smart Contract → Attacker EOA.receive()", 
-          "Attacker EOA → Smart Contract.withdraw(20)"
-        ]);
+        addLog("🤔 Robot is confused! It forgot it already gave Bob money", 'warning');
+        addLog("💰 Robot gives Bob ANOTHER $50!", 'danger');
+        setParticipants(prev => ({
+          ...prev,
+          bob: { ...prev.bob, balance: 100 },
+          marketplace: { ...prev.marketplace, balance: 50 }
+        }));
         break;
       case 7:
-        addLog("🔍 Second check: Smart Contract still shows 20 ETH earnings", 'warning');
-        addLog("💡 Why? Smart Contract's state not updated from first call!", 'info');
-        setCallStack([
-          "Attacker EOA → Smart Contract.withdraw(20)", 
-          "Smart Contract → Attacker EOA.receive()", 
-          "Attacker EOA → Smart Contract.withdraw(20)",
-          "Smart Contract → Attacker EOA.receive()"
-        ]);
+        addLog("😱 Alice tries to get her $100 back...", 'info');
+        setActiveParticipant('alice');
+        setCallStack([]);
         break;
       case 8:
-        addLog("💰 EXPLOIT: Smart Contract sends 20 ETH to Attacker's EOA", 'danger');
-        setParticipants(prev => ({
-          ...prev,
-          attacker: { ...prev.attacker, balance: prev.attacker.balance + 20 },
-          marketplace: { ...prev.marketplace, balance: prev.marketplace.balance - 20 }
-        }));
-        break;
-      case 9:
-        addLog("↩️ Second call completes, returns to first call", 'info');
-        setCallStack(["Attacker EOA → Smart Contract.withdraw(20)"]);
-        break;
-      case 10:
-        addLog("💰 DOUBLE STEAL: Smart Contract sends another 20 ETH!", 'danger');
-        setParticipants(prev => ({
-          ...prev,
-          attacker: { ...prev.attacker, balance: prev.attacker.balance + 20 },
-          marketplace: { ...prev.marketplace, balance: prev.marketplace.balance - 20 }
-        }));
-        break;
-      case 11:
-        addLog("🏁 Attack complete - Attacker's EOA now has 50 ETH total", 'danger');
-        setCallStack([]);
-        setActiveParticipant(null);
-        break;
-      case 12:
-        addLog("😰 Merchant (EOA) tries to withdraw from Smart Contract", 'info');
-        setActiveParticipant('merchant');
-        break;
-      case 13:
-        addLog("❌ IMPACT: Smart Contract has insufficient ETH balance!", 'danger');
-        addLog("💔 Honest users can't access their ETH stored in contract", 'warning');
-        break;
-      case 14:
-        addLog("🏭 Vendor (EOA) also affected - can't withdraw ETH", 'warning');
-        setActiveParticipant('vendor');
-        break;
-      case 15:
-        addLog("📊 RESULT: Smart Contract drained, all honest users lose money", 'danger');
-        addLog("⚖️ One vulnerable smart contract affects entire ecosystem", 'warning');
+        addLog("💔 OH NO! Robot only has $50 left, but Alice needs $100!", 'danger');
+        addLog("🏆 Bob stole $50 extra. Alice loses $50 of her money!", 'danger');
         setActiveParticipant(null);
         break;
       default:
@@ -157,7 +111,7 @@ const ReentrancyVisualization = () => {
     
     const interval = setInterval(() => {
       setStep(prevStep => {
-        if (prevStep >= 15) {
+        if (prevStep >= 8) {
           clearInterval(interval);
           setIsAutoPlaying(false);
           return prevStep;
@@ -175,12 +129,12 @@ const ReentrancyVisualization = () => {
     const isContract = participants[key].type === 'contract';
     
     if (isActive) {
-      if (key === 'attacker') return 'bg-red-600 animate-pulse shadow-lg';
+      if (key === 'bob') return 'bg-red-600 animate-pulse shadow-lg';
       if (isContract) return 'bg-purple-600 animate-pulse shadow-lg';
       return 'bg-blue-600 animate-pulse shadow-lg';
     }
     
-    if (key === 'attacker') return 'bg-red-500';
+    if (key === 'bob') return 'bg-red-500';
     if (isContract) return 'bg-purple-500';
     return 'bg-blue-500';
   };
@@ -197,7 +151,7 @@ const ReentrancyVisualization = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto bg-gray-50 rounded-lg shadow-md">
       <h1 className="text-4xl font-bold text-center mb-6 text-gray-800">
-        Ethereum Ecosystem: Reentrancy Attack Explained
+        The Magic Money Robot Trick (How Hackers Steal Digital Money)
       </h1>
 
       {/* Toggle Buttons */}
@@ -231,44 +185,45 @@ const ReentrancyVisualization = () => {
           <div className="mb-6 bg-green-50 p-4 rounded-lg border-2 border-green-200">
             <h3 className="text-xl font-bold mb-3 text-green-800">🤷‍♂️ What Are We Even Talking About?</h3>
             <div className="text-lg text-green-700 space-y-3">
-              <p><strong>Think of it like this:</strong> Imagine you have a magical vending machine on the internet that holds everyone's money and automatically gives it back when asked.</p>
-              <p><strong>The problem:</strong> Someone found a way to trick the machine into giving them money twice for the same request.</p>
-              <p><strong>The result:</strong> The machine runs out of money, so honest people can't get their money back.</p>
+              <p><strong>Imagine this:</strong> You have a magical robot that holds everyone's money safely.</p>
+              <p><strong>The problem:</strong> A sneaky person found a way to trick the robot into giving them money twice.</p>
+              <p><strong>The result:</strong> The robot runs out of money, so good people can't get their money back.</p>
+              <p><strong>In real life:</strong> This happens with cryptocurrency (digital money) and people lose millions!</p>
             </div>
           </div>
 
           {/* Just 3 Characters */}
           <div className="mb-6 bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
-            <h3 className="text-xl font-bold mb-3 text-blue-800">👥 Our 3 Main Characters</h3>
+            <h3 className="text-xl font-bold mb-3 text-blue-800">👥 Meet Our 3 Characters</h3>
             <div className="grid md:grid-cols-3 gap-4">
               <div className="bg-white p-4 rounded-lg border text-center">
-                <div className="text-3xl mb-2">🤖</div>
-                <div className="font-bold text-purple-600">The Robot Cashier</div>
+                <div className="text-4xl mb-2">🤖</div>
+                <div className="font-bold text-purple-600">Magic Money Robot</div>
                 <div className="text-sm text-gray-600 mt-2">
-                  • This is the "smart contract"
-                  • It's like an automatic cashier
-                  • Holds everyone's money
-                  • Follows simple rules
+                  • Holds everyone's money safely
+                  • Gives money back when asked
+                  • But has a bug that can be exploited
+                  • This is what we call a "smart contract"
                 </div>
               </div>
               <div className="bg-white p-4 rounded-lg border text-center">
-                <div className="text-3xl mb-2">😇</div>
+                <div className="text-4xl mb-2">😇</div>
                 <div className="font-bold text-blue-600">Alice (Good Person)</div>
                 <div className="text-sm text-gray-600 mt-2">
-                  • Put $100 into the robot
-                  • Expects to get it back later
-                  • Did nothing wrong
-                  • Gets hurt by the attack
+                  • Puts $100 into the robot
+                  • Trusts the robot to keep it safe
+                  • Wants her money back later
+                  • Gets hurt by Bob's trick
                 </div>
               </div>
               <div className="bg-white p-4 rounded-lg border text-center">
-                <div className="text-3xl mb-2">😈</div>
+                <div className="text-4xl mb-2">😈</div>
                 <div className="font-bold text-red-600">Bob (Bad Person)</div>
                 <div className="text-sm text-gray-600 mt-2">
-                  • Put $50 into the robot
-                  • Found a way to cheat
-                  • Steals extra money
-                  • Ruins it for everyone
+                  • Puts $50 into the robot
+                  • Discovers the robot's weakness
+                  • Uses a sneaky trick to steal extra money
+                  • Ruins it for everyone else
                 </div>
               </div>
             </div>
@@ -276,37 +231,45 @@ const ReentrancyVisualization = () => {
 
           {/* The Simple Story */}
           <div className="mb-6 bg-yellow-50 p-4 rounded-lg border-2 border-yellow-200">
-            <h3 className="text-xl font-bold mb-3 text-yellow-800">📖 The Story in Simple Steps</h3>
+            <h3 className="text-xl font-bold mb-3 text-yellow-800">📖 The Story (Super Simple Version)</h3>
             <div className="space-y-4">
               <div className="flex items-start space-x-3">
                 <div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">1</div>
                 <div>
-                  <div className="font-semibold">Setting Up</div>
-                  <div className="text-sm text-gray-600">Alice puts $100 into the Robot Cashier. Bob puts $50. Robot now holds $150 total.</div>
+                  <div className="font-semibold">Alice puts in $100, Bob puts in $50</div>
+                  <div className="text-sm text-gray-600">The robot now holds $150 total. Everyone trusts it.</div>
                 </div>
               </div>
               
               <div className="flex items-start space-x-3">
                 <div className="bg-yellow-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">2</div>
                 <div>
-                  <div className="font-semibold">The Trick</div>
-                  <div className="text-sm text-gray-600">Bob asks for his $50 back. While the Robot is getting the money, Bob quickly asks for another $50.</div>
+                  <div className="font-semibold">Bob asks for his $50 back</div>
+                  <div className="text-sm text-gray-600">Robot says "OK!" and starts sending Bob his money.</div>
                 </div>
               </div>
               
               <div className="flex items-start space-x-3">
-                <div className="bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">3</div>
+                <div className="bg-orange-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">3</div>
                 <div>
-                  <div className="font-semibold">The Problem</div>
-                  <div className="text-sm text-gray-600">The Robot is confused! It gives Bob $50 twice because it forgot it already gave him money once.</div>
+                  <div className="font-semibold">WHILE robot is sending money, Bob asks AGAIN!</div>
+                  <div className="text-sm text-gray-600">Robot is confused and forgets it already started giving Bob money.</div>
                 </div>
               </div>
               
               <div className="flex items-start space-x-3">
-                <div className="bg-gray-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">4</div>
+                <div className="bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">4</div>
                 <div>
-                  <div className="font-semibold">The Damage</div>
-                  <div className="text-sm text-gray-600">Robot now only has $50 left, but Alice wants her $100. There's not enough money for everyone!</div>
+                  <div className="font-semibold">Robot gives Bob $50 TWICE!</div>
+                  <div className="text-sm text-gray-600">Bob now has $100, but only put in $50. He stole $50!</div>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-3">
+                <div className="bg-gray-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">5</div>
+                <div>
+                  <div className="font-semibold">Alice wants her $100 back...</div>
+                  <div className="text-sm text-gray-600">But robot only has $50 left! Alice loses half her money because of Bob's trick.</div>
                 </div>
               </div>
             </div>
@@ -314,50 +277,79 @@ const ReentrancyVisualization = () => {
 
           {/* Why This Matters */}
           <div className="mb-6 bg-red-50 p-4 rounded-lg border-2 border-red-200">
-            <h3 className="text-xl font-bold mb-3 text-red-800">❗ Why Should You Care?</h3>
+            <h3 className="text-xl font-bold mb-3 text-red-800">❗ Why Should You Care About This?</h3>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <h4 className="font-semibold mb-2 text-red-700">Real Money at Risk:</h4>
+                <h4 className="font-semibold mb-2 text-red-700">💰 Real Money Gets Stolen:</h4>
                 <ul className="text-sm space-y-1 text-red-600">
-                  <li>• This happens with real cryptocurrency</li>
-                  <li>• People lose thousands or millions of dollars</li>
-                  <li>• Once money is stolen, it's usually gone forever</li>
-                  <li>• No bank or government can help you</li>
+                  <li>• This happens with real cryptocurrency (digital money)</li>
+                  <li>• People lose their life savings - thousands or millions!</li>
+                  <li>• Unlike banks, there's no insurance or protection</li>
+                  <li>• Once stolen, the money is gone forever</li>
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold mb-2 text-red-700">It Happens Often:</h4>
+                <h4 className="font-semibold mb-2 text-red-700">📈 It Happens A LOT:</h4>
                 <ul className="text-sm space-y-1 text-red-600">
-                  <li>• Hundreds of these attacks happen every year</li>
-                  <li>• Even big, trusted projects get hacked</li>
+                  <li>• Hundreds of these attacks every year</li>
+                  <li>• Even big, "trusted" companies get hacked</li>
                   <li>• Hackers steal billions of dollars annually</li>
-                  <li>• Regular people lose their life savings</li>
+                  <li>• Your grandma could lose her retirement savings</li>
                 </ul>
               </div>
+            </div>
+            <div className="mt-4 p-3 bg-white rounded border-l-4 border-red-400">
+              <p className="text-red-700 font-medium">
+                <strong>Bottom Line:</strong> This "robot trick" has made many people lose everything they had. 
+                It's not just a computer problem - it destroys real families' lives.
+              </p>
             </div>
           </div>
 
           {/* The Lesson */}
-          <div className="bg-purple-50 p-4 rounded-lg border-2 border-purple-200">
-            <h3 className="text-xl font-bold mb-3 text-purple-800">🎓 The Big Lesson</h3>
-            <div className="text-purple-700 space-y-2">
-              <p><strong>For Regular People:</strong> Be very careful where you put your cryptocurrency. Only use well-tested, popular platforms.</p>
-              <p><strong>For Developers:</strong> Writing secure code is really hard. Always get experts to check your work before handling real money.</p>
-              <p><strong>For Everyone:</strong> This technology is powerful but dangerous. Understand the risks before you invest.</p>
+          <div className="mb-6 bg-purple-50 p-4 rounded-lg border-2 border-purple-200">
+            <h3 className="text-xl font-bold mb-3 text-purple-800">🎓 What Should You Learn From This?</h3>
+            <div className="space-y-3 text-purple-700">
+              <div className="p-3 bg-white rounded border-l-4 border-blue-400">
+                <p><strong>If you're thinking about cryptocurrency:</strong> Only use very popular, well-tested platforms. If it's new or promises crazy returns, stay away!</p>
+              </div>
+              <div className="p-3 bg-white rounded border-l-4 border-green-400">
+                <p><strong>If you're learning to code:</strong> Writing secure code is super hard. Get multiple experts to check your work before real money touches it.</p>
+              </div>
+              <div className="p-3 bg-white rounded border-l-4 border-orange-400">
+                <p><strong>For everyone:</strong> Just because something is "on the blockchain" doesn't make it safe. Understand the risks before putting in money you can't afford to lose.</p>
+              </div>
             </div>
           </div>
 
           {/* Real Example */}
           <div className="mt-6 bg-gray-50 p-4 rounded-lg border-2 border-gray-300">
-            <h3 className="text-xl font-bold mb-3 text-gray-800">🌍 Real Example That Happened</h3>
+            <h3 className="text-xl font-bold mb-3 text-gray-800">🌍 This Really Happened!</h3>
             <div className="bg-white p-4 rounded border-l-4 border-red-400">
-              <div className="font-semibold text-red-700 mb-2">The DAO Hack (2016)</div>
-              <ul className="text-sm space-y-1 text-gray-600">
-                <li>• A "Robot Cashier" called The DAO held $150 million</li>
-                <li>• A hacker used this exact trick to steal $50 million</li>
-                <li>• Thousands of people lost their money</li>
-                <li>• It was so bad that Ethereum had to "rewind" the entire system</li>
-                <li>• This created a permanent split in the cryptocurrency community</li>
+              <div className="font-semibold text-red-700 mb-2">The DAO Hack (2016) - The Most Famous Example</div>
+              <div className="space-y-2 text-sm text-gray-600">
+                <p>• <strong>What it was:</strong> A "Magic Money Robot" called The DAO that held $150 million</p>
+                <p>• <strong>What happened:</strong> A hacker used this exact same trick Bob used</p>
+                <p>• <strong>How much stolen:</strong> $50 million disappeared in just a few hours</p>
+                <p>• <strong>Who got hurt:</strong> Thousands of regular people lost their money</p>
+                <p>• <strong>How bad was it:</strong> So bad that Ethereum had to "rewind time" and undo the hack</p>
+                <p>• <strong>The aftermath:</strong> Split the cryptocurrency community forever</p>
+              </div>
+              <div className="mt-3 p-2 bg-red-100 rounded">
+                <p className="text-red-800 font-medium text-sm">
+                  💔 <strong>Personal Impact:</strong> Real families lost college funds, retirement savings, and money for medical bills. 
+                  Some people lost everything they had because they trusted the "robot."
+                </p>
+              </div>
+            </div>
+            
+            <div className="mt-4 bg-yellow-100 p-3 rounded border-l-4 border-yellow-400">
+              <h4 className="font-semibold text-yellow-800 mb-1">🔥 More Recent Examples:</h4>
+              <ul className="text-sm text-yellow-700 space-y-1">
+                <li>• <strong>2021:</strong> Cream Finance - $130 million stolen</li>
+                <li>• <strong>2022:</strong> Fei Protocol - $80 million stolen</li>
+                <li>• <strong>2023:</strong> Multiple smaller attacks, millions lost monthly</li>
+                <li>• <strong>2024:</strong> Still happening regularly!</li>
               </ul>
             </div>
           </div>
@@ -792,24 +784,19 @@ contract MaliciousAttacker {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
         {/* Participants */}
         <div className="lg:col-span-3 bg-white p-4 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">Ecosystem Participants</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <h2 className="text-xl font-semibold mb-4 text-gray-700">Our 3 Characters</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {Object.entries(participants).map(([key, participant]) => (
-              <div key={key} className={`${getParticipantColor(key)} text-white p-3 rounded-lg transition-all duration-300`}>
-                <div className="text-xs font-medium mb-1">
-                  {participant.type === 'contract' ? '🤖 Smart Contract' : '👤 Human (EOA)'}
+              <div key={key} className={`${getParticipantColor(key)} text-white p-4 rounded-lg transition-all duration-300`}>
+                <div className="text-sm font-medium mb-1">
+                  {participant.type === 'contract' ? '🤖 Magic Robot' : '👤 Person'}
                 </div>
-                <div className="text-sm font-medium mb-2">{participant.role}</div>
-                <div className="font-mono text-lg mb-1">{participant.balance} ETH</div>
-                <div className="text-xs opacity-90 mb-1">{participant.address}</div>
-                {participant.earnings && (
-                  <div className="text-xs opacity-90">
-                    Earnings: {participant.earnings} ETH
-                  </div>
-                )}
-                {participant.spent > 0 && (
-                  <div className="text-xs opacity-90">
-                    Spent: {participant.spent} ETH
+                <div className="text-lg font-medium mb-2">{participant.role}</div>
+                <div className="font-mono text-xl mb-1">${participant.balance}</div>
+                <div className="text-sm opacity-90 mb-1">{participant.address}</div>
+                {participant.deposited && (
+                  <div className="text-sm opacity-90">
+                    Put in: ${participant.deposited}
                   </div>
                 )}
               </div>
@@ -839,13 +826,13 @@ contract MaliciousAttacker {
       {/* Attack Progress */}
       <div className="bg-white p-6 rounded-lg shadow mb-6">
         <h2 className="text-xl font-semibold mb-4 text-gray-700">
-          Reentrancy Attack Simulation - Step {step} of 15
+          The Money Robot Trick - Step {step} of 8
         </h2>
         
         <div className="w-full bg-gray-200 rounded-full h-3 mb-6">
           <div 
             className="bg-gradient-to-r from-blue-500 to-red-500 h-3 rounded-full transition-all duration-500" 
-            style={{ width: `${(step / 15) * 100}%` }}
+            style={{ width: `${(step / 8) * 100}%` }}
           ></div>
         </div>
 
@@ -858,15 +845,15 @@ contract MaliciousAttacker {
           </button>
           <button 
             onClick={nextStep} 
-            disabled={step >= 15 || isAutoPlaying}
-            className={`px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors ${(step >= 15 || isAutoPlaying) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={step >= 8 || isAutoPlaying}
+            className={`px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors ${(step >= 8 || isAutoPlaying) ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             ▶️ Next Step
           </button>
           <button 
             onClick={autoPlay} 
-            disabled={step >= 15 || isAutoPlaying}
-            className={`px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors ${(step >= 15 || isAutoPlaying) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={step >= 8 || isAutoPlaying}
+            className={`px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors ${(step >= 8 || isAutoPlaying) ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {isAutoPlaying ? '⏸️ Playing...' : '🚀 Auto Play'}
           </button>
@@ -891,7 +878,7 @@ contract MaliciousAttacker {
 
       {/* Event Logs */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-700">Detailed Transaction Log</h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-700">What's Happening Step by Step</h2>
         <div className="bg-gray-900 p-4 rounded text-sm h-64 overflow-y-auto">
           {logs.length > 0 ? (
             <div className="space-y-1">
@@ -902,7 +889,7 @@ contract MaliciousAttacker {
               ))}
             </div>
           ) : (
-            <div className="text-green-400">Ready to simulate Ethereum transactions...</div>
+            <div className="text-green-400">Ready to watch the money robot trick...</div>
           )}
         </div>
       </div>
