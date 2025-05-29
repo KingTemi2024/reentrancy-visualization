@@ -4,7 +4,7 @@ import ReentrancyVisualization from './components/ReentrancyVisualization';
 import SmartContractVulnerabilityPlatform from './components/SmartContractVulnerabilityPlatform';
 
 function App() {
-  const [currentView, setCurrentView] = useState('vulnerability-platform');
+  const [currentView, setCurrentView] = useState('reentrancy-demo'); // Start with your original demo
 
   return (
     <div className="App min-h-screen bg-gray-50">
@@ -22,16 +22,6 @@ function App() {
             <div className="hidden md:block">
               <div className="ml-10 flex items-baseline space-x-4">
                 <button
-                  onClick={() => setCurrentView('vulnerability-platform')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                    currentView === 'vulnerability-platform'
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
-                  }`}
-                >
-                  🔍 Vulnerability Platform
-                </button>
-                <button
                   onClick={() => setCurrentView('reentrancy-demo')}
                   className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
                     currentView === 'reentrancy-demo'
@@ -40,6 +30,16 @@ function App() {
                   }`}
                 >
                   🔄 Reentrancy Demo
+                </button>
+                <button
+                  onClick={() => setCurrentView('vulnerability-platform')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                    currentView === 'vulnerability-platform'
+                      ? 'bg-blue-600 text-white shadow-lg'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
+                  }`}
+                >
+                  🔍 Vulnerability Platform
                 </button>
               </div>
             </div>
@@ -51,8 +51,8 @@ function App() {
                 onChange={(e) => setCurrentView(e.target.value)}
                 className="bg-gray-700 text-white border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="vulnerability-platform">🔍 Vulnerability Platform</option>
                 <option value="reentrancy-demo">🔄 Reentrancy Demo</option>
+                <option value="vulnerability-platform">🔍 Vulnerability Platform</option>
               </select>
             </div>
           </div>
@@ -61,8 +61,8 @@ function App() {
 
       {/* Content Area */}
       <main className="flex-1">
-        {currentView === 'vulnerability-platform' && <SmartContractVulnerabilityPlatform />}
         {currentView === 'reentrancy-demo' && <ReentrancyVisualization />}
+        {currentView === 'vulnerability-platform' && <SmartContractVulnerabilityPlatform />}
       </main>
 
       {/* Footer */}
