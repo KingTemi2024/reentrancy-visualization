@@ -154,36 +154,36 @@ const ReentrancyVisualization = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto bg-gray-50 rounded-lg shadow-md">
-      {/* Navigation Menu */}
-      <div className="mb-8 bg-white p-4 rounded-lg shadow border-2 border-blue-200">
-        <h2 className="text-lg font-semibold mb-4 text-gray-800 text-center">🔐 Smart Contract Security Suite</h2>
-        <div className="flex flex-wrap justify-center gap-3">
+      {/* NAVIGATION MENU - SMART CONTRACT SECURITY SUITE */}
+      <div className="mb-8 bg-gradient-to-r from-blue-500 to-purple-600 p-6 rounded-xl shadow-lg border">
+        <h2 className="text-2xl font-bold mb-4 text-white text-center">🔐 Smart Contract Security Suite</h2>
+        <div className="flex flex-wrap justify-center gap-4">
           <button 
             onClick={() => handleNavigation('EnhancedSmartContractPlatform')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
+            className="px-6 py-3 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-semibold shadow-md hover:shadow-lg transform hover:scale-105"
           >
             🏠 Enhanced Platform
           </button>
           <button 
             onClick={() => handleNavigation('SmartAnalyzer')}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium shadow-sm"
+            className="px-6 py-3 bg-white text-green-600 rounded-lg hover:bg-green-50 transition-colors font-semibold shadow-md hover:shadow-lg transform hover:scale-105"
           >
             🔍 Smart Analyzer
           </button>
           <button 
             onClick={() => handleNavigation('SmartContractVulnerabilityPlatform')}
-            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium shadow-sm"
+            className="px-6 py-3 bg-white text-orange-600 rounded-lg hover:bg-orange-50 transition-colors font-semibold shadow-md hover:shadow-lg transform hover:scale-105"
           >
             🛡️ Vulnerability Platform
           </button>
           <button 
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium shadow-sm cursor-default"
+            className="px-6 py-3 bg-yellow-400 text-purple-800 rounded-lg font-bold shadow-md cursor-default border-2 border-yellow-300"
           >
-            ⚡ Reentrancy Demo (Current)
+            ⚡ Reentrancy Demo (CURRENT)
           </button>
         </div>
-        <p className="text-sm text-gray-600 text-center mt-3">
-          Navigate between different smart contract security tools
+        <p className="text-white text-center mt-4 opacity-90">
+          📍 Navigate between different smart contract security tools
         </p>
       </div>
 
