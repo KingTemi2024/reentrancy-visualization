@@ -1,3 +1,4 @@
+// src/components/EnhancedSmartContractPlatform.js
 import { useState, useEffect } from 'react';
 
 const EnhancedSmartContractPlatform = () => {
