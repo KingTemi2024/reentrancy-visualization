@@ -567,6 +567,7 @@ contract SecureContract is AccessControl {
     return 'text-green-600 bg-green-100';
   };
 
+  // 🚀 UPDATED: Added multiVuln contract to exampleContracts
   const exampleContracts = {
     reentrancy: `pragma solidity ^0.8.0;
 
@@ -611,6 +612,68 @@ contract VulnerableWallet {
     function withdraw(uint256 amount) public {
         // Should have: require(msg.sender == owner, "Not owner");
         payable(msg.sender).transfer(amount);
+    }
+}`,
+    // 🆕 NEW: Multi-Vulnerability Contract
+    multiVuln: `pragma solidity ^0.7.0; // Old version - vulnerable to overflow
+
+contract SuperVulnerableBank {
+    mapping(address => uint256) public balances;
+    address public owner;
+    uint256 public totalSupply;
+    
+    constructor() {
+        owner = msg.sender;
+        totalSupply = 1000000;
+    }
+    
+    // VULNERABILITY 1: Missing access control
+    function emergencyWithdraw(uint256 amount) public {
+        // Should have: require(msg.sender == owner, "Not owner");
+        payable(msg.sender).transfer(amount);
+    }
+    
+    // VULNERABILITY 2: Integer overflow (old Solidity version)
+    function mint(address to, uint256 amount) public {
+        // No SafeMath - can overflow!
+        balances[to] += amount;
+        totalSupply += amount;
+    }
+    
+    function deposit() public payable {
+        balances[msg.sender] += msg.value;
+    }
+    
+    // VULNERABILITY 3: Reentrancy attack
+    function withdraw(uint256 amount) public {
+        require(balances[msg.sender] >= amount, "Insufficient balance");
+        
+        // DANGEROUS: External call before state update
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success, "Transfer failed");
+        
+        // Too late! Balance updated after external call
+        balances[msg.sender] -= amount;
+    }
+    
+    // VULNERABILITY 4: More overflow potential
+    function transfer(address to, uint256 amount) public {
+        // No overflow protection
+        balances[msg.sender] -= amount;
+        balances[to] += amount;
+    }
+    
+    // VULNERABILITY 5: Another missing access control
+    function setOwner(address newOwner) public {
+        // Anyone can become owner!
+        owner = newOwner;
+    }
+    
+    // VULNERABILITY 6: Unchecked low-level call
+    function payUser(address user, uint256 amount) public {
+        // Doesn't check if call succeeded
+        user.call{value: amount}("");
+        balances[user] += amount;
     }
 }`
   };
