@@ -1,20 +1,141 @@
 import { useState } from 'react';
 
-const ReentrancyVisualization = () => {
+const SmartContractVulnerabilityPlatform = () => {
+  const [contractCode, setContractCode] = useState('');
+  const [detectedVulnerabilities, setDetectedVulnerabilities] = useState([]);
+  const [selectedVulnerability, setSelectedVulnerability] = useState(null);
   const [step, setStep] = useState(0);
-  const [showBasics, setShowBasics] = useState(true);
-  const [showUseCase, setShowUseCase] = useState(false);
-  const [showSimple, setShowSimple] = useState(false);
-  const [participants, setParticipants] = useState({
-    marketplace: { balance: 150, role: 'Magic Money Robot', type: 'contract', address: '🤖 Robot' },
-    alice: { balance: 0, role: 'Alice (Good Person)', type: 'eoa', deposited: 100, address: '😇 Alice' },
-    bob: { balance: 0, role: 'Bob (Bad Person)', type: 'eoa', deposited: 50, address: '😈 Bob' }
-  });
+  const [participants, setParticipants] = useState({});
   const [callStack, setCallStack] = useState([]);
   const [logs, setLogs] = useState([]);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [speed, setSpeed] = useState(1500);
   const [activeParticipant, setActiveParticipant] = useState(null);
+  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [showRecommender, setShowRecommender] = useState(false);
+  const [recommendationMode, setRecommendationMode] = useState('quick'); // quick, detailed, comprehensive
+
+  // Vulnerability detection patterns
+  const vulnerabilityPatterns = {
+    reentrancy: {
+      name: "Reentrancy Attack",
+      emoji: "🔄",
+      severity: "HIGH",
+      description: "External calls before state updates allow recursive attacks",
+      pattern: /\.call\{.*\}\(\"\"\).*\n.*[-=]/gi,
+      alternativePattern: /\.transfer\(.*\).*\n.*[-=]/gi,
+      maxSteps: 8,
+      createScenario: () => ({
+        participants: {
+          contract: { balance: 150, role: 'Vulnerable Contract', type: 'contract', address: '📝 Contract' },
+          victim: { balance: 0, role: 'Honest User', type: 'eoa', deposited: 100, address: '😇 Victim' },
+          attacker: { balance: 0, role: 'Malicious User', type: 'eoa', deposited: 50, address: '😈 Attacker' }
+        },
+        steps: [
+          { message: "😇 Honest user deposits 100 ETH", type: 'info', actor: 'victim', balanceChanges: { victim: { balance: 100 } } },
+          { message: "😈 Attacker deposits 50 ETH to gain legitimacy", type: 'info', actor: 'attacker', balanceChanges: { attacker: { balance: 50 } } },
+          { message: "🚨 Attacker calls withdraw(50 ETH)", type: 'warning', actor: 'attacker', callStack: ["withdraw(50 ETH)"] },
+          { message: "📝 Contract sends ETH before updating balance", type: 'info', callStack: ["withdraw(50 ETH)", "transfer 50 ETH"] },
+          { message: "⚡ Attacker's receive() triggers during transfer", type: 'danger', callStack: ["withdraw(50 ETH)", "transfer 50 ETH", "receive() callback"] },
+          { message: "🔄 Attacker calls withdraw(50 ETH) AGAIN!", type: 'danger', callStack: ["withdraw(50 ETH)", "transfer 50 ETH", "receive() callback", "withdraw(50 ETH) AGAIN"] },
+          { message: "💰 Contract sends another 50 ETH (balance still not updated)", type: 'danger', balanceChanges: { attacker: { balance: 100 }, contract: { balance: 50 } } },
+          { message: "💔 Honest user can only withdraw 50 ETH (lost 50 ETH)", type: 'danger', balanceChanges: { victim: { balance: 50 } } }
+        ]
+      })
+    },
+    integerOverflow: {
+      name: "Integer Overflow",
+      emoji: "📊",
+      severity: "HIGH",
+      description: "Arithmetic operations that exceed maximum values wrap around",
+      pattern: /uint\d*.*[+\-\*]/gi,
+      maxSteps: 6,
+      createScenario: () => ({
+        participants: {
+          contract: { balance: 'MAX', role: 'Token Contract', type: 'contract', address: '🪙 Token' },
+          victim: { balance: 1000, role: 'Token Holder', type: 'eoa', tokens: 1000, address: '😇 Holder' },
+          attacker: { balance: 0, role: 'Exploiter', type: 'eoa', tokens: 1, address: '😈 Exploiter' }
+        },
+        steps: [
+          { message: "😇 Holder has 1000 tokens", type: 'info', actor: 'victim' },
+          { message: "😈 Exploiter has only 1 token", type: 'info', actor: 'attacker' },
+          { message: "🚨 Exploiter calls transfer(-1) to victim", type: 'warning', actor: 'attacker' },
+          { message: "📊 Contract calculates: 1 - (-1) = 2", type: 'info' },
+          { message: "💥 But -1 becomes MAX_UINT (overflow!)", type: 'danger', balanceChanges: { attacker: { tokens: 'MAX_UINT' } } },
+          { message: "💔 Exploiter now has unlimited tokens!", type: 'danger' }
+        ]
+      })
+    },
+    accessControl: {
+      name: "Access Control Bypass",
+      emoji: "🔐",
+      severity: "CRITICAL",
+      description: "Missing or flawed access controls allow unauthorized actions",
+      pattern: /function.*public(?!.*onlyOwner|.*require.*owner|.*modifier)/gi,
+      maxSteps: 5,
+      createScenario: () => ({
+        participants: {
+          contract: { balance: 1000000, role: 'Company Contract', type: 'contract', address: '🏢 Contract' },
+          owner: { balance: 0, role: 'Contract Owner', type: 'eoa', address: '👨‍💼 Owner' },
+          attacker: { balance: 0, role: 'Random User', type: 'eoa', address: '😈 Random' }
+        },
+        steps: [
+          { message: "🏢 Contract holds 1M ETH in company funds", type: 'info' },
+          { message: "👨‍💼 Only owner should access withdrawal function", type: 'info', actor: 'owner' },
+          { message: "😈 Random user discovers public withdrawal function", type: 'warning', actor: 'attacker' },
+          { message: "🚨 No access control check - anyone can call it!", type: 'danger' },
+          { message: "💰 Random user drains entire contract", type: 'danger', balanceChanges: { attacker: { balance: 1000000 }, contract: { balance: 0 } } }
+        ]
+      })
+    },
+    txOriginAttack: {
+      name: "tx.origin Attack",
+      emoji: "🎭",
+      severity: "MEDIUM",
+      description: "Using tx.origin instead of msg.sender enables phishing attacks",
+      pattern: /tx\.origin/gi,
+      maxSteps: 7,
+      createScenario: () => ({
+        participants: {
+          wallet: { balance: 500, role: 'Wallet Contract', type: 'contract', address: '💼 Wallet' },
+          owner: { balance: 0, role: 'Wallet Owner', type: 'eoa', address: '😇 Owner' },
+          maliciousContract: { balance: 0, role: 'Phishing Contract', type: 'contract', address: '🎣 Phishing' },
+          attacker: { balance: 0, role: 'Phisher', type: 'eoa', address: '😈 Phisher' }
+        },
+        steps: [
+          { message: "💼 Wallet contract uses tx.origin for authorization", type: 'info' },
+          { message: "😇 Owner has 500 ETH in wallet contract", type: 'info', actor: 'owner' },
+          { message: "😈 Phisher creates malicious contract", type: 'warning', actor: 'attacker' },
+          { message: "🎣 Phisher tricks owner to call malicious contract", type: 'warning' },
+          { message: "⚡ Malicious contract calls wallet.withdraw()", type: 'danger' },
+          { message: "🎭 tx.origin still points to owner, check passes!", type: 'danger' },
+          { message: "💰 Phisher drains owner's wallet through proxy", type: 'danger', balanceChanges: { attacker: { balance: 500 }, wallet: { balance: 0 } } }
+        ]
+      })
+    },
+    uncheckedLowLevel: {
+      name: "Unchecked Low-Level Calls",
+      emoji: "⚠️",
+      severity: "MEDIUM",
+      description: "Low-level calls that don't check return values can fail silently",
+      pattern: /\.call\((?!.*success)/gi,
+      maxSteps: 5,
+      createScenario: () => ({
+        participants: {
+          contract: { balance: 1000, role: 'Payment Contract', type: 'contract', address: '💳 Payment' },
+          recipient: { balance: 0, role: 'Payment Recipient', type: 'eoa', address: '😇 Recipient' },
+          system: { balance: 0, role: 'System Status', type: 'system', address: '📊 System' }
+        },
+        steps: [
+          { message: "💳 Contract processes payment to recipient", type: 'info' },
+          { message: "😇 Recipient account is invalid/frozen", type: 'warning', actor: 'recipient' },
+          { message: "⚠️ Contract makes low-level call without checking return", type: 'warning' },
+          { message: "❌ Payment fails silently, no revert", type: 'danger' },
+          { message: "💔 Contract thinks payment succeeded, recipient gets nothing", type: 'danger' }
+        ]
+      })
+    }
+  };
 
   const addLog = (message, type = 'info') => {
     setLogs(prevLogs => [...prevLogs, { 
@@ -24,101 +145,122 @@ const ReentrancyVisualization = () => {
     }]);
   };
 
-  const reset = () => {
-    setStep(0);
-    setParticipants({
-      marketplace: { balance: 150, role: 'Magic Money Robot', type: 'contract', address: '🤖 Robot' },
-      alice: { balance: 0, role: 'Alice (Good Person)', type: 'eoa', deposited: 100, address: '😇 Alice' },
-      bob: { balance: 0, role: 'Bob (Bad Person)', type: 'eoa', deposited: 50, address: '😈 Bob' }
+  const analyzeContract = () => {
+    if (!contractCode.trim()) {
+      addLog("❌ Please paste some smart contract code first", 'error');
+      return;
+    }
+
+    const vulnerabilities = [];
+    
+    Object.entries(vulnerabilityPatterns).forEach(([key, pattern]) => {
+      const matches = contractCode.match(pattern.pattern) || contractCode.match(pattern.alternativePattern);
+      if (matches) {
+        vulnerabilities.push({
+          id: key,
+          ...pattern,
+          matches: matches.length,
+          codeSnippets: matches.slice(0, 3)
+        });
+      }
     });
+
+    setDetectedVulnerabilities(vulnerabilities);
+    setShowAnalysis(true);
+    
+    if (vulnerabilities.length === 0) {
+      addLog("✅ No obvious vulnerabilities detected in basic scan", 'success');
+      addLog("⚠️ Note: This is a basic pattern check. Professional audit recommended", 'warning');
+    } else {
+      addLog(`🚨 Found ${vulnerabilities.length} potential vulnerability(ies)`, 'danger');
+      vulnerabilities.forEach(vuln => {
+        addLog(`${vuln.emoji} ${vuln.name} (${vuln.severity})`, vuln.severity === 'CRITICAL' ? 'danger' : 'warning');
+      });
+      
+      // Auto-suggest using the recommender
+      setTimeout(() => {
+        addLog("💡 Tip: Click the '💡 Recommender' button above for detailed security recommendations!", 'info');
+      }, 2000);
+    }
+  };
+
+  const selectVulnerability = (vuln) => {
+    const scenario = vuln.createScenario();
+    setSelectedVulnerability(vuln);
+    setParticipants(scenario.participants);
+    setStep(0);
     setCallStack([]);
-    setLogs([]);
-    setIsAutoPlaying(false);
     setActiveParticipant(null);
-    addLog("🔄 Money Robot reset - Ready to hold everyone's money!", 'system');
-    addLog("📋 1 Magic Robot + 2 People + Digital Money", 'info');
+    addLog(`🎯 Testing ${vuln.name} vulnerability`, 'info');
+    addLog("🎬 Click 'Next Step' to see the attack simulation", 'info');
   };
 
   const nextStep = () => {
-    if (step >= 8) return;
+    if (!selectedVulnerability || step >= selectedVulnerability.maxSteps) return;
+    
+    const scenario = selectedVulnerability.createScenario();
+    const currentStep = scenario.steps[step];
     
     setStep(prevStep => {
       const newStep = prevStep + 1;
-      executeStep(newStep);
+      executeStep(currentStep, newStep);
       return newStep;
     });
   };
 
-  const executeStep = (stepNum) => {
-    switch(stepNum) {
-      case 1:
-        addLog("😇 Alice puts $100 into the Magic Money Robot", 'info');
-        setActiveParticipant('alice');
-        setParticipants(prev => ({
-          ...prev,
-          alice: { ...prev.alice, balance: 100 }
-        }));
-        break;
-      case 2:
-        addLog("😈 Bob puts $50 into the Magic Money Robot", 'info');
-        setActiveParticipant('bob');
-        setParticipants(prev => ({
-          ...prev,
-          bob: { ...prev.bob, balance: 50 }
-        }));
-        break;
-      case 3:
-        addLog("🚨 THE TRICK: Bob asks for his $50 back", 'warning');
-        setActiveParticipant('bob');
-        setCallStack(["Bob asks Robot for $50"]);
-        break;
-      case 4:
-        addLog("🤖 Robot says 'OK Bob, here's your $50!' and starts sending money", 'info');
-        setCallStack(["Bob asks Robot for $50", "Robot sends $50 to Bob"]);
-        break;
-      case 5:
-        addLog("⚡ SUPER FAST: While Robot is sending money, Bob asks AGAIN!", 'danger');
-        setCallStack(["Bob asks Robot for $50", "Robot sends $50 to Bob", "Bob asks AGAIN for $50!"]);
-        break;
-      case 6:
-        addLog("🤔 Robot is confused! It forgot it already gave Bob money", 'warning');
-        addLog("💰 Robot gives Bob ANOTHER $50!", 'danger');
-        setParticipants(prev => ({
-          ...prev,
-          bob: { ...prev.bob, balance: 100 },
-          marketplace: { ...prev.marketplace, balance: 50 }
-        }));
-        break;
-      case 7:
-        addLog("😱 Alice tries to get her $100 back...", 'info');
-        setActiveParticipant('alice');
-        setCallStack([]);
-        break;
-      case 8:
-        addLog("💔 OH NO! Robot only has $50 left, but Alice needs $100!", 'danger');
-        addLog("🏆 Bob stole $50 extra. Alice loses $50 of her money!", 'danger');
-        setActiveParticipant(null);
-        break;
-      default:
-        break;
+  const executeStep = (stepData, stepNum) => {
+    addLog(stepData.message, stepData.type);
+    
+    if (stepData.actor) {
+      setActiveParticipant(stepData.actor);
+    }
+    
+    if (stepData.callStack) {
+      setCallStack(stepData.callStack);
+    }
+    
+    if (stepData.balanceChanges) {
+      setParticipants(prev => {
+        const newParticipants = { ...prev };
+        Object.entries(stepData.balanceChanges).forEach(([key, changes]) => {
+          if (newParticipants[key]) {
+            newParticipants[key] = { ...newParticipants[key], ...changes };
+          }
+        });
+        return newParticipants;
+      });
     }
   };
 
+  const reset = () => {
+    setStep(0);
+    setCallStack([]);
+    setActiveParticipant(null);
+    setIsAutoPlaying(false);
+    if (selectedVulnerability) {
+      const scenario = selectedVulnerability.createScenario();
+      setParticipants(scenario.participants);
+    }
+    addLog("🔄 Simulation reset", 'system');
+  };
+
   const autoPlay = () => {
-    if (isAutoPlaying) return;
+    if (isAutoPlaying || !selectedVulnerability) return;
     
     setIsAutoPlaying(true);
+    const scenario = selectedVulnerability.createScenario();
     
     const interval = setInterval(() => {
       setStep(prevStep => {
-        if (prevStep >= 8) {
+        if (prevStep >= selectedVulnerability.maxSteps) {
           clearInterval(interval);
           setIsAutoPlaying(false);
           return prevStep;
         }
         
+        const currentStep = scenario.steps[prevStep];
         const newStep = prevStep + 1;
-        executeStep(newStep);
+        executeStep(currentStep, newStep);
         return newStep;
       });
     }, speed);
@@ -126,16 +268,19 @@ const ReentrancyVisualization = () => {
 
   const getParticipantColor = (key) => {
     const isActive = activeParticipant === key;
-    const isContract = participants[key].type === 'contract';
+    const participant = participants[key];
+    
+    if (!participant) return 'bg-gray-500';
     
     if (isActive) {
-      if (key === 'bob') return 'bg-red-600 animate-pulse shadow-lg';
-      if (isContract) return 'bg-purple-600 animate-pulse shadow-lg';
+      if (key.includes('attack') || key.includes('exploit') || key.includes('malicious')) return 'bg-red-600 animate-pulse shadow-lg';
+      if (participant.type === 'contract') return 'bg-purple-600 animate-pulse shadow-lg';
       return 'bg-blue-600 animate-pulse shadow-lg';
     }
     
-    if (key === 'bob') return 'bg-red-500';
-    if (isContract) return 'bg-purple-500';
+    if (key.includes('attack') || key.includes('exploit') || key.includes('malicious')) return 'bg-red-500';
+    if (participant.type === 'contract') return 'bg-purple-500';
+    if (participant.type === 'system') return 'bg-gray-500';
     return 'bg-blue-500';
   };
 
@@ -144,12 +289,139 @@ const ReentrancyVisualization = () => {
       case 'danger': return 'text-red-400';
       case 'warning': return 'text-yellow-400';
       case 'system': return 'text-blue-400';
+      case 'success': return 'text-green-400';
+      case 'error': return 'text-red-300';
       default: return 'text-green-400';
     }
   };
 
+  const getSeverityColor = (severity) => {
+    switch(severity) {
+      case 'CRITICAL': return 'bg-red-600';
+      case 'HIGH': return 'bg-red-500';
+      case 'MEDIUM': return 'bg-yellow-500';
+      case 'LOW': return 'bg-blue-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  // Add navigation handler
   const handleNavigation = (componentName) => {
-    alert(`Navigation to ${componentName} - In your real app, this would navigate to src/components/${componentName}.js`);
+    if (componentName === 'Recommender') {
+      // Show recommender interface
+      setShowRecommender(true);
+    } else {
+      alert(`Navigation to ${componentName} - In your real app, this would navigate to src/components/${componentName}.js`);
+    }
+  };
+
+  const exampleContracts = {
+    reentrancy: `pragma solidity ^0.8.0;
+
+contract VulnerableBank {
+    mapping(address => uint256) public balances;
+    
+    function deposit() public payable {
+        balances[msg.sender] += msg.value;
+    }
+    
+    function withdraw(uint256 amount) public {
+        require(balances[msg.sender] >= amount, "Insufficient balance");
+        
+        // VULNERABILITY: External call before state update
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success, "Transfer failed");
+        
+        balances[msg.sender] -= amount; // Too late!
+    }
+}`,
+    overflow: `pragma solidity ^0.4.24; // Old version without SafeMath
+
+contract VulnerableToken {
+    mapping(address => uint256) public balances;
+    
+    function transfer(address to, uint256 amount) public {
+        // VULNERABILITY: No overflow protection
+        balances[msg.sender] -= amount;
+        balances[to] += amount;
+    }
+}`,
+    accessControl: `pragma solidity ^0.8.0;
+
+contract VulnerableWallet {
+    address public owner;
+    
+    constructor() {
+        owner = msg.sender;
+    }
+    
+    // VULNERABILITY: Missing access control
+    function withdraw(uint256 amount) public {
+        // Should have: require(msg.sender == owner, "Not owner");
+        payable(msg.sender).transfer(amount);
+    }
+}`,
+    multiVuln: `pragma solidity ^0.7.0; // Old version - vulnerable to overflow
+
+contract SuperVulnerableBank {
+    mapping(address => uint256) public balances;
+    address public owner;
+    uint256 public totalSupply;
+    
+    constructor() {
+        owner = msg.sender;
+        totalSupply = 1000000;
+    }
+    
+    // VULNERABILITY 1: Missing access control
+    function emergencyWithdraw(uint256 amount) public {
+        // Should have: require(msg.sender == owner, "Not owner");
+        payable(msg.sender).transfer(amount);
+    }
+    
+    // VULNERABILITY 2: Integer overflow (old Solidity version)
+    function mint(address to, uint256 amount) public {
+        // No SafeMath - can overflow!
+        balances[to] += amount;
+        totalSupply += amount;
+    }
+    
+    function deposit() public payable {
+        balances[msg.sender] += msg.value;
+    }
+    
+    // VULNERABILITY 3: Reentrancy attack
+    function withdraw(uint256 amount) public {
+        require(balances[msg.sender] >= amount, "Insufficient balance");
+        
+        // DANGEROUS: External call before state update
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success, "Transfer failed");
+        
+        // Too late! Balance updated after external call
+        balances[msg.sender] -= amount;
+    }
+    
+    // VULNERABILITY 4: More overflow potential
+    function transfer(address to, uint256 amount) public {
+        // No overflow protection
+        balances[msg.sender] -= amount;
+        balances[to] += amount;
+    }
+    
+    // VULNERABILITY 5: Another missing access control
+    function setOwner(address newOwner) public {
+        // Anyone can become owner!
+        owner = newOwner;
+    }
+    
+    // VULNERABILITY 6: Unchecked low-level call
+    function payUser(address user, uint256 amount) public {
+        // Doesn't check if call succeeded
+        user.call{value: amount}("");
+        balances[user] += amount;
+    }
+}`
   };
 
   return (
@@ -177,9 +449,15 @@ const ReentrancyVisualization = () => {
             🛡️ Vulnerability Platform
           </button>
           <button 
+            onClick={() => handleNavigation('Recommender')}
+            className="px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-purple-50 transition-colors font-semibold shadow-md hover:shadow-lg transform hover:scale-105"
+          >
+            💡 Recommender
+          </button>
+          <button 
             className="px-6 py-3 bg-yellow-400 text-purple-800 rounded-lg font-bold shadow-md cursor-default border-2 border-yellow-300"
           >
-            ⚡ Reentrancy Demo (CURRENT)
+            ⚡ Vulnerability Tester (CURRENT)
           </button>
         </div>
         <p className="text-white text-center mt-4 opacity-90">
@@ -188,487 +466,617 @@ const ReentrancyVisualization = () => {
       </div>
 
       <h1 className="text-4xl font-bold text-center mb-6 text-gray-800">
-        The Magic Money Robot Trick (How Hackers Steal Digital Money)
+        🔍 Smart Contract Vulnerability Testing Platform
       </h1>
+      <p className="text-center text-gray-600 mb-8">
+        Paste your smart contract code below to analyze it for common vulnerabilities and see interactive attack simulations
+      </p>
 
-      {/* Toggle Buttons */}
-      <div className="mb-6 text-center space-x-4">
-        <button 
-          onClick={() => setShowSimple(!showSimple)}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          {showSimple ? 'Hide' : 'Show'} Simple Explanation
-        </button>
-        <button 
-          onClick={() => setShowBasics(!showBasics)}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-        >
-          {showBasics ? 'Hide' : 'Show'} Ethereum Basics
-        </button>
-        <button 
-          onClick={() => setShowUseCase(!showUseCase)}
-          className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-        >
-          {showUseCase ? 'Hide' : 'Show'} Real-World Use Case
-        </button>
+      {/* Code Input Section */}
+      <div className="mb-8 bg-white p-6 rounded-lg shadow border-2 border-blue-300">
+        <h2 className="text-2xl font-semibold mb-4 text-gray-800">📝 Paste Your Smart Contract Code</h2>
+        
+        <div className="mb-4">
+          <label htmlFor="contract-code" className="block text-sm font-medium text-gray-700 mb-2">
+            Smart Contract Code (Solidity)
+          </label>
+          <textarea
+            id="contract-code"
+            value={contractCode}
+            onChange={(e) => setContractCode(e.target.value)}
+            placeholder="pragma solidity ^0.8.0;
+
+contract YourContract {
+    // Paste your smart contract code here...
+}"
+            className="w-full h-64 p-4 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-4 lg:space-y-0">
+          <button 
+            onClick={analyzeContract}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors font-semibold"
+          >
+            🔍 Analyze for Vulnerabilities
+          </button>
+          
+          <div className="flex flex-col lg:flex-row lg:items-center space-y-2 lg:space-y-0 lg:space-x-4">
+            <span className="text-sm text-gray-600 font-medium">Quick Examples:</span>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(exampleContracts).map(([key, code]) => (
+                <button
+                  key={key}
+                  onClick={() => setContractCode(code)}
+                  className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                    key === 'multiVuln' 
+                      ? 'bg-red-600 text-white hover:bg-red-700 border-2 border-red-700' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  {key === 'multiVuln' ? '💥 multiVuln' : key}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Simple Explanation Section */}
-      {showSimple && (
-        <div className="mb-8 bg-white p-6 rounded-lg shadow border-2 border-green-300">
-          <h2 className="text-2xl font-semibold mb-4 text-gray-800">🟢 Super Simple Explanation (For Complete Beginners)</h2>
+      {/* Analysis Results */}
+      {showAnalysis && (
+        <div className="mb-8 bg-white p-6 rounded-lg shadow">
+          <h2 className="text-2xl font-semibold mb-4 text-gray-800">📊 Vulnerability Analysis Results</h2>
           
-          {/* What is This About */}
-          <div className="mb-6 bg-green-50 p-4 rounded-lg border-2 border-green-200">
-            <h3 className="text-xl font-bold mb-3 text-green-800">🤷‍♂️ What Are We Even Talking About?</h3>
-            <div className="text-lg text-green-700 space-y-3">
-              <p><strong>Imagine this:</strong> You have a magical robot that holds everyone's money safely.</p>
-              <p><strong>The problem:</strong> A sneaky person found a way to trick the robot into giving them money twice.</p>
-              <p><strong>The result:</strong> The robot runs out of money, so good people can't get their money back.</p>
-              <p><strong>In real life:</strong> This happens with cryptocurrency (digital money) and people lose millions!</p>
-            </div>
-          </div>
-
-          {/* Just 3 Characters */}
-          <div className="mb-6 bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
-            <h3 className="text-xl font-bold mb-3 text-blue-800">👥 Meet Our 3 Characters</h3>
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="bg-white p-4 rounded-lg border text-center">
-                <div className="text-4xl mb-2">🤖</div>
-                <div className="font-bold text-purple-600">Magic Money Robot</div>
-                <div className="text-sm text-gray-600 mt-2">
-                  • Holds everyone's money safely
-                  • Gives money back when asked
-                  • But has a bug that can be exploited
-                  • This is what we call a "smart contract"
-                </div>
-              </div>
-              <div className="bg-white p-4 rounded-lg border text-center">
-                <div className="text-4xl mb-2">😇</div>
-                <div className="font-bold text-blue-600">Alice (Good Person)</div>
-                <div className="text-sm text-gray-600 mt-2">
-                  • Puts $100 into the robot
-                  • Trusts the robot to keep it safe
-                  • Wants her money back later
-                  • Gets hurt by Bob's trick
-                </div>
-              </div>
-              <div className="bg-white p-4 rounded-lg border text-center">
-                <div className="text-4xl mb-2">😈</div>
-                <div className="font-bold text-red-600">Bob (Bad Person)</div>
-                <div className="text-sm text-gray-600 mt-2">
-                  • Puts $50 into the robot
-                  • Discovers the robot's weakness
-                  • Uses a sneaky trick to steal extra money
-                  • Ruins it for everyone else
+          {detectedVulnerabilities.length === 0 ? (
+            <div className="bg-green-50 p-4 rounded-lg border-2 border-green-300">
+              <div className="flex items-center">
+                <div className="text-green-600 text-2xl mr-3">✅</div>
+                <div>
+                  <h3 className="text-lg font-semibold text-green-800">No Obvious Vulnerabilities Detected</h3>
+                  <p className="text-green-700">
+                    Our basic pattern matching didn't find common vulnerability patterns. However, this doesn't guarantee your contract is safe.
+                    Consider professional security audits for production contracts.
+                  </p>
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* The Simple Story */}
-          <div className="mb-6 bg-yellow-50 p-4 rounded-lg border-2 border-yellow-200">
-            <h3 className="text-xl font-bold mb-3 text-yellow-800">📖 The Story (Super Simple Version)</h3>
+          ) : (
             <div className="space-y-4">
-              <div className="flex items-start space-x-3">
-                <div className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">1</div>
-                <div>
-                  <div className="font-semibold">Alice puts in $100, Bob puts in $50</div>
-                  <div className="text-sm text-gray-600">The robot now holds $150 total. Everyone trusts it.</div>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="bg-yellow-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">2</div>
-                <div>
-                  <div className="font-semibold">Bob asks for his $50 back</div>
-                  <div className="text-sm text-gray-600">Robot says "OK!" and starts sending Bob his money.</div>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="bg-orange-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">3</div>
-                <div>
-                  <div className="font-semibold">WHILE robot is sending money, Bob asks AGAIN!</div>
-                  <div className="text-sm text-gray-600">Robot is confused and forgets it already started giving Bob money.</div>
-                </div>
-              </div>
-              
-              <div className="flex items-start space-x-3">
-                <div className="bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">4</div>
-                <div>
-                  <div className="font-semibold">Robot gives Bob $50 TWICE!</div>
-                  <div className="text-sm text-gray-600">Bob now has $100, but only put in $50. He stole $50!</div>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <div className="bg-gray-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">5</div>
-                <div>
-                  <div className="font-semibold">Alice wants her $100 back...</div>
-                  <div className="text-sm text-gray-600">But robot only has $50 left! Alice loses half her money because of Bob's trick.</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Why This Matters */}
-          <div className="mb-6 bg-red-50 p-4 rounded-lg border-2 border-red-200">
-            <h3 className="text-xl font-bold mb-3 text-red-800">❗ Why Should You Care About This?</h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <h4 className="font-semibold mb-2 text-red-700">💰 Real Money Gets Stolen:</h4>
-                <ul className="text-sm space-y-1 text-red-600">
-                  <li>• This happens with real cryptocurrency (digital money)</li>
-                  <li>• People lose their life savings - thousands or millions!</li>
-                  <li>• Unlike banks, there's no insurance or protection</li>
-                  <li>• Once stolen, the money is gone forever</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2 text-red-700">📈 It Happens A LOT:</h4>
-                <ul className="text-sm space-y-1 text-red-600">
-                  <li>• Hundreds of these attacks every year</li>
-                  <li>• Even big, "trusted" companies get hacked</li>
-                  <li>• Hackers steal billions of dollars annually</li>
-                  <li>• Your grandma could lose her retirement savings</li>
-                </ul>
-              </div>
-            </div>
-            <div className="mt-4 p-3 bg-white rounded border-l-4 border-red-400">
-              <p className="text-red-700 font-medium">
-                <strong>Bottom Line:</strong> This "robot trick" has made many people lose everything they had. 
-                It's not just a computer problem - it destroys real families' lives.
-              </p>
-            </div>
-          </div>
-
-          {/* The Lesson */}
-          <div className="mb-6 bg-purple-50 p-4 rounded-lg border-2 border-purple-200">
-            <h3 className="text-xl font-bold mb-3 text-purple-800">🎓 What Should You Learn From This?</h3>
-            <div className="space-y-3 text-purple-700">
-              <div className="p-3 bg-white rounded border-l-4 border-blue-400">
-                <p><strong>If you're thinking about cryptocurrency:</strong> Only use very popular, well-tested platforms. If it's new or promises crazy returns, stay away!</p>
-              </div>
-              <div className="p-3 bg-white rounded border-l-4 border-green-400">
-                <p><strong>If you're learning to code:</strong> Writing secure code is super hard. Get multiple experts to check your work before real money touches it.</p>
-              </div>
-              <div className="p-3 bg-white rounded border-l-4 border-orange-400">
-                <p><strong>For everyone:</strong> Just because something is "on the blockchain" doesn't make it safe. Understand the risks before putting in money you can't afford to lose.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Real Example */}
-          <div className="mt-6 bg-gray-50 p-4 rounded-lg border-2 border-gray-300">
-            <h3 className="text-xl font-bold mb-3 text-gray-800">🌍 This Really Happened!</h3>
-            <div className="bg-white p-4 rounded border-l-4 border-red-400">
-              <div className="font-semibold text-red-700 mb-2">The DAO Hack (2016) - The Most Famous Example</div>
-              <div className="space-y-2 text-sm text-gray-600">
-                <p>• <strong>What it was:</strong> A "Magic Money Robot" called The DAO that held $150 million</p>
-                <p>• <strong>What happened:</strong> A hacker used this exact same trick Bob used</p>
-                <p>• <strong>How much stolen:</strong> $50 million disappeared in just a few hours</p>
-                <p>• <strong>Who got hurt:</strong> Thousands of regular people lost their money</p>
-                <p>• <strong>How bad was it:</strong> So bad that Ethereum had to "rewind time" and undo the hack</p>
-                <p>• <strong>The aftermath:</strong> Split the cryptocurrency community forever</p>
-              </div>
-              <div className="mt-3 p-2 bg-red-100 rounded">
-                <p className="text-red-800 font-medium text-sm">
-                  💔 <strong>Personal Impact:</strong> Real families lost college funds, retirement savings, and money for medical bills. 
-                  Some people lost everything they had because they trusted the "robot."
-                </p>
-              </div>
-            </div>
-            
-            <div className="mt-4 bg-yellow-100 p-3 rounded border-l-4 border-yellow-400">
-              <h4 className="font-semibold text-yellow-800 mb-1">🔥 More Recent Examples:</h4>
-              <ul className="text-sm text-yellow-700 space-y-1">
-                <li>• <strong>2021:</strong> Cream Finance - $130 million stolen</li>
-                <li>• <strong>2022:</strong> Fei Protocol - $80 million stolen</li>
-                <li>• <strong>2023:</strong> Multiple smaller attacks, millions lost monthly</li>
-                <li>• <strong>2024:</strong> Still happening regularly!</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Ethereum Basics Section */}
-      {showBasics && (
-        <div className="mb-8 bg-white p-6 rounded-lg shadow">
-          <h2 className="text-2xl font-semibold mb-4 text-gray-800">🌐 How Ethereum Actually Works</h2>
-          
-          {/* Physical vs Digital Reality */}
-          <div className="mb-6 bg-yellow-50 p-4 rounded-lg border-2 border-yellow-300">
-            <h3 className="text-lg font-bold mb-3 text-yellow-800">🤔 Your Question: "How do humans deposit money into a program?"</h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="bg-red-100 p-3 rounded border-l-4 border-red-400">
-                <h4 className="font-bold text-red-800 mb-2">❌ What Smart Contracts Are NOT:</h4>
-                <ul className="text-sm space-y-1 text-red-700">
-                  <li>• Not physical ATM machines</li>
-                  <li>• Not installed on one computer</li>
-                  <li>• Not in a bank building</li>
-                  <li>• Not controlled by one company</li>
-                </ul>
-              </div>
-              <div className="bg-green-100 p-3 rounded border-l-4 border-green-400">
-                <h4 className="font-bold text-green-800 mb-2">✅ What Smart Contracts Actually Are:</h4>
-                <ul className="text-sm space-y-1 text-green-700">
-                  <li>• Digital programs running on 1000s of computers</li>
-                  <li>• Accessible through websites/apps</li>
-                  <li>• Have their own "address" like email</li>
-                  <li>• Automatically execute when triggered</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          {/* How Interaction Works */}
-          <div className="mb-6 bg-blue-50 p-4 rounded-lg border-2 border-blue-300">
-            <h3 className="text-lg font-bold mb-3 text-blue-800">📱 How Humans Actually Interact with Smart Contracts</h3>
-            <div className="grid md:grid-cols-4 gap-3">
-              <div className="text-center">
-                <div className="bg-blue-500 text-white p-3 rounded-lg mb-2">
-                  <div className="font-bold">1. Website/App</div>
-                  <div className="text-xs mt-1">User visits marketplace.com</div>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="bg-green-500 text-white p-3 rounded-lg mb-2">
-                  <div className="font-bold">2. Wallet</div>
-                  <div className="text-xs mt-1">MetaMask connects to website</div>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="bg-purple-500 text-white p-3 rounded-lg mb-2">
-                  <div className="font-bold">3. Transaction</div>
-                  <div className="text-xs mt-1">Send ETH to contract address</div>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="bg-orange-500 text-white p-3 rounded-lg mb-2">
-                  <div className="font-bold">4. Execution</div>
-                  <div className="text-xs mt-1">Contract code runs automatically</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6 mb-6">
-            <div className="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
-              <h3 className="text-lg font-bold mb-3 text-blue-800">💰 Ether (ETH)</h3>
-              <ul className="text-sm space-y-2 text-blue-700">
-                <li>• Digital money (like digital dollars)</li>
-                <li>• Stored as numbers in accounts</li>
-                <li>• Transferred through transactions</li>
-                <li>• <strong>NOT</strong> physical coins or bills</li>
-                <li>• Exists only as blockchain records</li>
-              </ul>
-            </div>
-
-            <div className="bg-green-50 p-4 rounded-lg border-2 border-green-200">
-              <h3 className="text-lg font-bold mb-3 text-green-800">👤 Human Wallets (EOAs)</h3>
-              <ul className="text-sm space-y-2 text-green-700">
-                <li>• Software on your phone/computer</li>
-                <li>• Like a digital bank account</li>
-                <li>• Examples: MetaMask, Coinbase Wallet</li>
-                <li>• You control with your password/keys</li>
-                <li>• Can send ETH to any address</li>
-              </ul>
-            </div>
-
-            <div className="bg-purple-50 p-4 rounded-lg border-2 border-purple-200">
-              <h3 className="text-lg font-bold mb-3 text-purple-800">🤖 Smart Contracts</h3>
-              <ul className="text-sm space-y-2 text-purple-700">
-                <li>• Programs running on Ethereum network</li>
-                <li>• Have their own address (like email)</li>
-                <li>• Can receive and send ETH automatically</li>
-                <li>• Run on thousands of computers globally</li>
-                <li>• No single owner or controller</li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Real World Analogy */}
-          <div className="bg-indigo-50 p-4 rounded-lg border-2 border-indigo-300">
-            <h3 className="text-lg font-bold mb-3 text-indigo-800">🏦 Think of it Like Online Banking</h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <h4 className="font-semibold mb-2">Traditional Online Bank:</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• You visit bank's website</li>
-                  <li>• Login with your credentials</li>
-                  <li>• Transfer money between accounts</li>
-                  <li>• Bank's servers process transactions</li>
-                  <li>• Money moves digitally (no physical cash)</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2">Ethereum Smart Contract:</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• You visit marketplace website</li>
-                  <li>• Connect your MetaMask wallet</li>
-                  <li>• Send ETH to contract's address</li>
-                  <li>• Ethereum network processes transaction</li>
-                  <li>• ETH moves digitally to contract</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-lg font-bold mb-3 text-gray-800">🎭 Who is Who in Our Scenario:</h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <h4 className="font-semibold text-gray-700 mb-2">Smart Contract (1):</h4>
-                <ul className="text-sm space-y-1 text-gray-600">
-                  <li>• <strong>Marketplace Contract:</strong> Holds everyone's ETH, executes business logic</li>
-                  <li>• Has vulnerable withdrawal function</li>
-                  <li>• No human owner - runs automatically</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-700 mb-2">Human Users with EOAs (4):</h4>
-                <ul className="text-sm space-y-1 text-gray-600">
-                  <li>• <strong>Merchant:</strong> Sells products, earns ETH</li>
-                  <li>• <strong>Vendor:</strong> Supplies goods, expects payment</li>
-                  <li>• <strong>Customer:</strong> Buys products, spends ETH</li>
-                  <li>• <strong>Attacker:</strong> Exploits contract vulnerability</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Real-World Use Case Section */}
-      {showUseCase && (
-        <div className="mb-8 bg-white p-6 rounded-lg shadow">
-          <h2 className="text-2xl font-semibold mb-4 text-gray-800">🏦 Real-World Use Case: "EthLend" DeFi Protocol</h2>
-          
-          {/* The Business Model */}
-          <div className="mb-6 bg-green-50 p-4 rounded-lg border-2 border-green-300">
-            <h3 className="text-lg font-bold mb-3 text-green-800">💡 The Business: Decentralized Lending Platform</h3>
-            <p className="mb-3 text-green-700">
-              <strong>EthLend</strong> is a DeFi protocol where users can lend ETH to earn interest and borrow ETH by providing collateral. 
-              It's like a bank, but without traditional banks - everything is automated through smart contracts.
-            </p>
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="text-center p-3 bg-white rounded border">
-                <div className="font-bold text-green-600 mb-1">💰 Lenders</div>
-                <div className="text-sm">Deposit ETH, earn 5% APY</div>
-              </div>
-              <div className="text-center p-3 bg-white rounded border">
-                <div className="font-bold text-blue-600 mb-1">🏦 Protocol</div>
-                <div className="text-sm">Matches lenders & borrowers</div>
-              </div>
-              <div className="text-center p-3 bg-white rounded border">
-                <div className="font-bold text-orange-600 mb-1">📈 Borrowers</div>
-                <div className="text-sm">Borrow ETH, pay 8% APY</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-        {/* Participants */}
-        <div className="lg:col-span-3 bg-white p-4 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">Our 3 Characters</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {Object.entries(participants).map(([key, participant]) => (
-              <div key={key} className={`${getParticipantColor(key)} text-white p-4 rounded-lg transition-all duration-300`}>
-                <div className="text-sm font-medium mb-1">
-                  {participant.type === 'contract' ? '🤖 Magic Robot' : '👤 Person'}
-                </div>
-                <div className="text-lg font-medium mb-2">{participant.role}</div>
-                <div className="font-mono text-xl mb-1">${participant.balance}</div>
-                <div className="text-sm opacity-90 mb-1">{participant.address}</div>
-                {participant.deposited && (
-                  <div className="text-sm opacity-90">
-                    Put in: ${participant.deposited}
+              {detectedVulnerabilities.map((vuln, index) => (
+                <div key={vuln.id} className="bg-red-50 p-4 rounded-lg border-2 border-red-300">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center">
+                      <div className="text-2xl mr-3">{vuln.emoji}</div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-red-800">{vuln.name}</h3>
+                        <p className="text-red-700">{vuln.description}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <span className={`px-3 py-1 rounded text-white text-sm font-semibold ${getSeverityColor(vuln.severity)}`}>
+                        {vuln.severity}
+                      </span>
+                      <button
+                        onClick={() => selectVulnerability(vuln)}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
+                      >
+                        🎯 Test This Vulnerability
+                      </button>
+                    </div>
                   </div>
-                )}
+                  
+                  <div className="text-sm text-red-600">
+                    <strong>Found {vuln.matches} potential issue(s) in your code</strong>
+                  </div>
+                  
+                  {vuln.codeSnippets && vuln.codeSnippets.length > 0 && (
+                    <div className="mt-3">
+                      <details className="cursor-pointer">
+                        <summary className="text-sm font-medium text-red-700 hover:text-red-800">
+                          Show problematic code patterns
+                        </summary>
+                        <div className="mt-2 bg-gray-900 p-3 rounded text-green-400 font-mono text-sm">
+                          {vuln.codeSnippets.map((snippet, i) => (
+                            <div key={i} className="mb-1">
+                              {snippet.trim()}
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* RECOMMENDER SECTION */}
+      {showRecommender && (
+        <div className="mb-8 bg-white p-6 rounded-lg shadow border-l-4 border-purple-500">
+          <h2 className="text-3xl font-semibold mb-6 text-gray-800">💡 Smart Contract Security Recommender</h2>
+          
+          {/* Recommendation Mode Selector */}
+          <div className="mb-6 bg-purple-50 p-4 rounded-lg border border-purple-200">
+            <h3 className="text-lg font-semibold mb-3 text-purple-800">🎯 Select Recommendation Mode</h3>
+            <div className="flex space-x-4">
+              <button
+                onClick={() => setRecommendationMode('quick')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  recommendationMode === 'quick' 
+                    ? 'bg-purple-600 text-white' 
+                    : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                }`}
+              >
+                ⚡ Quick Fix
+              </button>
+              <button
+                onClick={() => setRecommendationMode('detailed')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  recommendationMode === 'detailed' 
+                    ? 'bg-purple-600 text-white' 
+                    : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                }`}
+              >
+                🔍 Detailed Analysis
+              </button>
+              <button
+                onClick={() => setRecommendationMode('comprehensive')}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                  recommendationMode === 'comprehensive' 
+                    ? 'bg-purple-600 text-white' 
+                    : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                }`}
+              >
+                🧠 Comprehensive Report
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Fix Mode */}
+          {recommendationMode === 'quick' && (
+            <div className="space-y-6">
+              <div className="bg-green-50 p-6 rounded-lg border border-green-200">
+                <h3 className="text-xl font-semibold mb-4 text-green-800">⚡ Quick Security Fixes</h3>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="bg-white p-4 rounded-lg border border-green-300">
+                    <div className="flex items-center mb-3">
+                      <div className="text-2xl mr-3">🔄</div>
+                      <h4 className="text-lg font-semibold text-green-700">Reentrancy Protection</h4>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-3">Add checks-effects-interactions pattern</p>
+                    <div className="bg-gray-900 p-3 rounded text-green-400 font-mono text-xs">
+                      <pre>{`// Move state updates before external calls
+balances[msg.sender] -= amount;
+(bool success, ) = msg.sender.call{value: amount}("");`}</pre>
+                    </div>
+                    <div className="mt-2 text-xs text-green-600">
+                      ✅ Security: 95% | ⚡ Difficulty: Easy | 💰 Gas: Minimal
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-lg border border-blue-300">
+                    <div className="flex items-center mb-3">
+                      <div className="text-2xl mr-3">🔐</div>
+                      <h4 className="text-lg font-semibold text-blue-700">Access Control</h4>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-3">Add proper authorization checks</p>
+                    <div className="bg-gray-900 p-3 rounded text-green-400 font-mono text-xs">
+                      <pre>{`// Add access control modifier
+require(msg.sender == owner, "Not authorized");`}</pre>
+                    </div>
+                    <div className="mt-2 text-xs text-blue-600">
+                      ✅ Security: 98% | ⚡ Difficulty: Easy | 💰 Gas: Low
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-lg border border-yellow-300">
+                    <div className="flex items-center mb-3">
+                      <div className="text-2xl mr-3">📊</div>
+                      <h4 className="text-lg font-semibold text-yellow-700">Overflow Protection</h4>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-3">Upgrade to Solidity 0.8+ for automatic checks</p>
+                    <div className="bg-gray-900 p-3 rounded text-green-400 font-mono text-xs">
+                      <pre>{`pragma solidity ^0.8.0;
+// Automatic overflow/underflow protection`}</pre>
+                    </div>
+                    <div className="mt-2 text-xs text-yellow-600">
+                      ✅ Security: 100% | ⚡ Difficulty: Easy | 💰 Gas: Minimal
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-lg border border-red-300">
+                    <div className="flex items-center mb-3">
+                      <div className="text-2xl mr-3">⚠️</div>
+                      <h4 className="text-lg font-semibold text-red-700">Call Safety</h4>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-3">Always check return values of external calls</p>
+                    <div className="bg-gray-900 p-3 rounded text-green-400 font-mono text-xs">
+                      <pre>{`(bool success, ) = target.call{value: amount}("");
+require(success, "Call failed");`}</pre>
+                    </div>
+                    <div className="mt-2 text-xs text-red-600">
+                      ✅ Security: 90% | ⚡ Difficulty: Easy | 💰 Gas: Low
+                    </div>
+                  </div>
+                </div>
               </div>
-            ))}
+            </div>
+          )}
+
+          {/* Detailed Analysis Mode */}
+          {recommendationMode === 'detailed' && (
+            <div className="space-y-6">
+              <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                <h3 className="text-xl font-semibold mb-4 text-blue-800">🔍 Detailed Security Analysis & Recommendations</h3>
+                
+                <div className="grid md:grid-cols-1 gap-6">
+                  <div className="bg-white p-5 rounded-lg border border-blue-300">
+                    <h4 className="text-lg font-semibold text-blue-700 mb-3">🎯 Priority Vulnerabilities</h4>
+                    
+                    <div className="space-y-4">
+                      <div className="border-l-4 border-red-500 pl-4 bg-red-50 p-3 rounded">
+                        <div className="flex justify-between items-start mb-2">
+                          <h5 className="font-semibold text-red-700">Critical: Reentrancy in withdraw()</h5>
+                          <span className="bg-red-600 text-white px-2 py-1 rounded text-xs">HIGH RISK</span>
+                        </div>
+                        <p className="text-sm text-red-600 mb-2">
+                          External call before state update allows recursive attacks. Potential loss: $100K - $10M
+                        </p>
+                        <div className="text-xs text-red-500">
+                          📍 Line 15 | 🕒 Fix Time: 1-2 hours | 💰 Economic Impact: High
+                        </div>
+                        <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                          <div className="bg-red-100 p-2 rounded text-center">
+                            <strong>Exploitability</strong><br/>8/10
+                          </div>
+                          <div className="bg-orange-100 p-2 rounded text-center">
+                            <strong>Impact</strong><br/>9/10
+                          </div>
+                          <div className="bg-yellow-100 p-2 rounded text-center">
+                            <strong>Likelihood</strong><br/>7/10
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="border-l-4 border-orange-500 pl-4 bg-orange-50 p-3 rounded">
+                        <div className="flex justify-between items-start mb-2">
+                          <h5 className="font-semibold text-orange-700">Medium: Missing Access Control</h5>
+                          <span className="bg-orange-600 text-white px-2 py-1 rounded text-xs">MED RISK</span>
+                        </div>
+                        <p className="text-sm text-orange-600 mb-2">
+                          Public functions lack proper authorization. Potential unauthorized access to critical functions.
+                        </p>
+                        <div className="text-xs text-orange-500">
+                          📍 Line 8, 23 | 🕒 Fix Time: 30 minutes | 💰 Economic Impact: Medium
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-5 rounded-lg border border-green-300">
+                    <h4 className="text-lg font-semibold text-green-700 mb-3">💡 Recommended Solutions</h4>
+                    
+                    <div className="space-y-4">
+                      <div className="bg-green-50 p-4 rounded border border-green-200">
+                        <h5 className="font-semibold text-green-700 mb-2">1. Implement ReentrancyGuard</h5>
+                        <p className="text-sm text-gray-600 mb-3">
+                          Use OpenZeppelin's battle-tested reentrancy protection modifier.
+                        </p>
+                        <div className="bg-gray-900 p-3 rounded text-green-400 font-mono text-sm mb-2">
+                          <pre>{`import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+contract SecureBank is ReentrancyGuard {
+    function withdraw(uint256 amount) public nonReentrant {
+        require(balances[msg.sender] >= amount);
+        balances[msg.sender] -= amount;
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success);
+    }
+}`}</pre>
+                        </div>
+                        <div className="flex space-x-4 text-xs">
+                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded">Security: 100%</span>
+                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">Gas: +2,300</span>
+                          <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded">Difficulty: Easy</span>
+                        </div>
+                      </div>
+
+                      <div className="bg-blue-50 p-4 rounded border border-blue-200">
+                        <h5 className="font-semibold text-blue-700 mb-2">2. Add Comprehensive Access Control</h5>
+                        <p className="text-sm text-gray-600 mb-3">
+                          Implement role-based access control for granular permissions.
+                        </p>
+                        <div className="bg-gray-900 p-3 rounded text-green-400 font-mono text-sm mb-2">
+                          <pre>{`import "@openzeppelin/contracts/access/AccessControl.sol";
+
+contract SecureContract is AccessControl {
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+    
+    modifier onlyAdmin() {
+        require(hasRole(ADMIN_ROLE, msg.sender), "Not admin");
+        _;
+    }
+    
+    function withdraw(uint256 amount) public onlyAdmin {
+        // Implementation
+    }
+}`}</pre>
+                        </div>
+                        <div className="flex space-x-4 text-xs">
+                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">Security: 95%</span>
+                          <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Gas: +5,000</span>
+                          <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded">Difficulty: Medium</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Comprehensive Report Mode */}
+          {recommendationMode === 'comprehensive' && (
+            <div className="space-y-6">
+              <div className="bg-purple-50 p-6 rounded-lg border border-purple-200">
+                <h3 className="text-xl font-semibold mb-4 text-purple-800">🧠 Comprehensive Security Report</h3>
+                
+                <div className="grid md:grid-cols-1 gap-6">
+                  {/* Executive Summary */}
+                  <div className="bg-white p-5 rounded-lg border border-purple-300">
+                    <h4 className="text-lg font-semibold text-purple-700 mb-3">📊 Executive Summary</h4>
+                    <div className="grid md:grid-cols-4 gap-4 mb-4">
+                      <div className="bg-red-100 p-3 rounded text-center">
+                        <div className="text-2xl font-bold text-red-600">85</div>
+                        <div className="text-sm text-red-700">Risk Score</div>
+                      </div>
+                      <div className="bg-orange-100 p-3 rounded text-center">
+                        <div className="text-2xl font-bold text-orange-600">6</div>
+                        <div className="text-sm text-orange-700">Vulnerabilities</div>
+                      </div>
+                      <div className="bg-yellow-100 p-3 rounded text-center">
+                        <div className="text-2xl font-bold text-yellow-600">4-8h</div>
+                        <div className="text-sm text-yellow-700">Fix Time</div>
+                      </div>
+                      <div className="bg-blue-100 p-3 rounded text-center">
+                        <div className="text-2xl font-bold text-blue-600">$5M+</div>
+                        <div className="text-sm text-blue-700">Potential Loss</div>
+                      </div>
+                    </div>
+                    <p className="text-gray-700 text-sm">
+                      <strong>Critical Finding:</strong> This contract contains multiple high-severity vulnerabilities that could lead to 
+                      complete loss of funds. Immediate remediation is required before any mainnet deployment.
+                    </p>
+                  </div>
+
+                  {/* Historical Case Studies */}
+                  <div className="bg-white p-5 rounded-lg border border-red-300">
+                    <h4 className="text-lg font-semibold text-red-700 mb-3">📚 Historical Attack Cases</h4>
+                    <div className="space-y-3">
+                      <div className="border-l-4 border-red-500 pl-4 bg-red-50 p-3 rounded">
+                        <h5 className="font-semibold text-red-700">The DAO Hack (2016)</h5>
+                        <p className="text-sm text-red-600">
+                          <strong>Loss:</strong> $60 million | <strong>Vulnerability:</strong> Reentrancy
+                        </p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          Similar reentrancy pattern detected in your contract. Led to Ethereum hard fork.
+                        </p>
+                      </div>
+                      <div className="border-l-4 border-orange-500 pl-4 bg-orange-50 p-3 rounded">
+                        <h5 className="font-semibold text-orange-700">Parity Wallet (2017)</h5>
+                        <p className="text-sm text-orange-600">
+                          <strong>Loss:</strong> $280 million | <strong>Vulnerability:</strong> Access Control
+                        </p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          Missing access controls allowed anyone to destroy the wallet library.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Implementation Roadmap */}
+                  <div className="bg-white p-5 rounded-lg border border-green-300">
+                    <h4 className="text-lg font-semibold text-green-700 mb-3">🗺️ Security Implementation Roadmap</h4>
+                    <div className="space-y-4">
+                      <div className="flex items-start space-x-4">
+                        <div className="bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">1</div>
+                        <div className="flex-1">
+                          <h5 className="font-semibold text-red-700">Immediate (Day 1)</h5>
+                          <p className="text-sm text-gray-600">Fix critical reentrancy vulnerability using ReentrancyGuard</p>
+                          <div className="text-xs text-red-500 mt-1">⏰ 2 hours | 🔧 Easy implementation</div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start space-x-4">
+                        <div className="bg-orange-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">2</div>
+                        <div className="flex-1">
+                          <h5 className="font-semibold text-orange-700">Short-term (Week 1)</h5>
+                          <p className="text-sm text-gray-600">Implement comprehensive access control and upgrade Solidity version</p>
+                          <div className="text-xs text-orange-500 mt-1">⏰ 4-6 hours | 🔧 Medium implementation</div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-start space-x-4">
+                        <div className="bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">3</div>
+                        <div className="flex-1">
+                          <h5 className="font-semibold text-green-700">Long-term (Month 1)</h5>
+                          <p className="text-sm text-gray-600">Professional audit, extensive testing, and bug bounty program</p>
+                          <div className="text-xs text-green-500 mt-1">⏰ 2-4 weeks | 🔧 Professional required</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cost-Benefit Analysis */}
+                  <div className="bg-white p-5 rounded-lg border border-blue-300">
+                    <h4 className="text-lg font-semibold text-blue-700 mb-3">💰 Cost-Benefit Analysis</h4>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="bg-red-50 p-3 rounded">
+                        <h5 className="font-semibold text-red-700 mb-2">💸 Cost of NOT Fixing</h5>
+                        <ul className="text-sm text-red-600 space-y-1">
+                          <li>• Potential loss: $100K - $10M</li>
+                          <li>• Legal liability and lawsuits</li>
+                          <li>• Reputation damage</li>
+                          <li>• Regulatory scrutiny</li>
+                          <li>• User trust loss</li>
+                        </ul>
+                      </div>
+                      <div className="bg-green-50 p-3 rounded">
+                        <h5 className="font-semibold text-green-700 mb-2">💪 Investment in Security</h5>
+                        <ul className="text-sm text-green-600 space-y-1">
+                          <li>• Development time: 8-12 hours</li>
+                          <li>• Gas cost increase: ~5,000 gas</li>
+                          <li>• Audit cost: $10K - $50K</li>
+                          <li>• Testing & QA: $5K - $15K</li>
+                          <li>• <strong>ROI: 10,000%+</strong></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex justify-center space-x-4 mt-6">
+            <button
+              onClick={() => setShowRecommender(false)}
+              className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              ← Back to Analysis
+            </button>
+            <button
+              onClick={() => {
+                alert('Feature would generate full security report as PDF/Word document');
+              }}
+              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              📄 Generate Report
+            </button>
+            <button
+              onClick={() => {
+                alert('Feature would generate secure contract template with fixes applied');
+              }}
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              🔧 Generate Fixed Contract
+            </button>
           </div>
         </div>
-
-        {/* Call Stack */}
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">What's Happening</h2>
-          <div className="bg-gray-900 p-3 rounded text-green-400 font-mono text-xs overflow-x-auto">
-            {callStack.length > 0 ? (
-              <div className="space-y-1">
-                {callStack.map((call, index) => (
-                  <div key={index} className="ml-2" style={{ marginLeft: `${index * 0.5}rem` }}>
-                    → {call}
+      )}
+      {selectedVulnerability && (
+        <>
+          {/* Participants */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
+            <div className="lg:col-span-3 bg-white p-4 rounded-lg shadow">
+              <h2 className="text-xl font-semibold mb-4 text-gray-700">
+                {selectedVulnerability.emoji} Testing: {selectedVulnerability.name}
+              </h2>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {Object.entries(participants).map(([key, participant]) => (
+                  <div key={key} className={`${getParticipantColor(key)} text-white p-4 rounded-lg transition-all duration-300`}>
+                    <div className="text-sm font-medium mb-1">
+                      {participant.type === 'contract' ? '📝 Contract' : participant.type === 'system' ? '⚙️ System' : '👤 User'}
+                    </div>
+                    <div className="text-lg font-medium mb-2">{participant.role}</div>
+                    <div className="font-mono text-xl mb-1">
+                      {typeof participant.balance === 'string' ? participant.balance : `$${participant.balance}`}
+                    </div>
+                    <div className="text-sm opacity-90 mb-1">{participant.address}</div>
+                    {participant.deposited && (
+                      <div className="text-sm opacity-90">Put in: ${participant.deposited}</div>
+                    )}
+                    {participant.tokens && (
+                      <div className="text-sm opacity-90">Tokens: {participant.tokens}</div>
+                    )}
                   </div>
                 ))}
               </div>
-            ) : (
-              <div>No activity yet</div>
-            )}
+            </div>
+
+            {/* Call Stack */}
+            <div className="bg-white p-4 rounded-lg shadow">
+              <h2 className="text-xl font-semibold mb-4 text-gray-700">Function Calls</h2>
+              <div className="bg-gray-900 p-3 rounded text-green-400 font-mono text-xs overflow-x-auto">
+                {callStack.length > 0 ? (
+                  <div className="space-y-1">
+                    {callStack.map((call, index) => (
+                      <div key={index} style={{ marginLeft: `${index * 0.5}rem` }}>
+                        → {call}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div>No function calls yet</div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Attack Progress */}
-      <div className="bg-white p-6 rounded-lg shadow mb-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-700">
-          The Money Robot Trick - Step {step} of 8
-        </h2>
-        
-        <div className="w-full bg-gray-200 rounded-full h-3 mb-6">
-          <div 
-            className="bg-gradient-to-r from-blue-500 to-red-500 h-3 rounded-full transition-all duration-500" 
-            style={{ width: `${(step / 8) * 100}%` }}
-          ></div>
-        </div>
+          {/* Attack Progress */}
+          <div className="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-700">
+              {selectedVulnerability.emoji} {selectedVulnerability.name} Simulation - Step {step} of {selectedVulnerability.maxSteps}
+            </h2>
+            
+            <div className="w-full bg-gray-200 rounded-full h-3 mb-6">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-red-500 h-3 rounded-full transition-all duration-500" 
+                style={{ width: `${(step / selectedVulnerability.maxSteps) * 100}%` }}
+              ></div>
+            </div>
 
-        <div className="flex justify-center space-x-4 mb-4">
-          <button 
-            onClick={reset} 
-            className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 transition-colors"
-          >
-            🔄 Reset
-          </button>
-          <button 
-            onClick={nextStep} 
-            disabled={step >= 8 || isAutoPlaying}
-            className={`px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors ${(step >= 8 || isAutoPlaying) ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            ▶️ Next Step
-          </button>
-          <button 
-            onClick={autoPlay} 
-            disabled={step >= 8 || isAutoPlaying}
-            className={`px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors ${(step >= 8 || isAutoPlaying) ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {isAutoPlaying ? '⏸️ Playing...' : '🚀 Auto Play'}
-          </button>
-        </div>
+            <div className="flex justify-center space-x-4 mb-4">
+              <button 
+                onClick={reset} 
+                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 transition-colors"
+              >
+                🔄 Reset
+              </button>
+              <button 
+                onClick={nextStep} 
+                disabled={step >= selectedVulnerability.maxSteps || isAutoPlaying}
+                className={`px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors ${(step >= selectedVulnerability.maxSteps || isAutoPlaying) ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                ▶️ Next Step
+              </button>
+              <button 
+                onClick={autoPlay} 
+                disabled={step >= selectedVulnerability.maxSteps || isAutoPlaying}
+                className={`px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors ${(step >= selectedVulnerability.maxSteps || isAutoPlaying) ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {isAutoPlaying ? '⏸️ Playing...' : '🚀 Auto Play'}
+              </button>
+            </div>
 
-        <div className="flex items-center justify-center">
-          <label htmlFor="speed-slider" className="mr-3 text-sm">Speed:</label>
-          <input 
-            id="speed-slider" 
-            type="range" 
-            min="500" 
-            max="3000" 
-            step="100" 
-            value={speed} 
-            onChange={(e) => setSpeed(parseInt(e.target.value))}
-            className="w-32"
-            disabled={isAutoPlaying}
-          />
-          <span className="ml-2 text-sm">{speed}ms</span>
-        </div>
-      </div>
+            <div className="flex items-center justify-center">
+              <label htmlFor="speed-slider" className="mr-3 text-sm">Speed:</label>
+              <input 
+                id="speed-slider" 
+                type="range" 
+                min="500" 
+                max="3000" 
+                step="100" 
+                value={speed} 
+                onChange={(e) => setSpeed(parseInt(e.target.value))}
+                className="w-32"
+                disabled={isAutoPlaying}
+              />
+              <span className="ml-2 text-sm">{speed}ms</span>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Event Logs */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-700">What's Happening Step by Step</h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-700">
+          {selectedVulnerability ? `${selectedVulnerability.emoji} Attack Simulation Log` : '📋 Analysis Log'}
+        </h2>
         <div className="bg-gray-900 p-4 rounded text-sm h-64 overflow-y-auto">
           {logs.length > 0 ? (
             <div className="space-y-1">
@@ -679,150 +1087,82 @@ const ReentrancyVisualization = () => {
               ))}
             </div>
           ) : (
-            <div className="text-green-400">Ready to watch the money robot trick...</div>
+            <div className="text-green-400">Ready to analyze smart contracts...</div>
           )}
         </div>
       </div>
 
-      {/* Enhanced Educational Section */}
+      {/* Information Section */}
       <div className="bg-white p-6 rounded-lg shadow">
         <h2 className="text-2xl font-semibold mb-4 text-gray-700">
-          🎓 Understanding the Fundamental Components
+          📚 How This Platform Works
         </h2>
         
-        <div className="space-y-6 text-gray-700">
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-xl font-medium mb-3">❓ Key Questions Answered</h3>
-              <div className="space-y-4">
-                <div className="bg-blue-50 p-3 rounded border-l-4 border-blue-500">
-                  <p><strong>Q: Is Ether the smart contract?</strong></p>
-                  <p className="text-sm mt-1">A: No! Ether (ETH) is the currency that flows between accounts and smart contracts. Think of ETH as digital money.</p>
-                </div>
-                
-                <div className="bg-green-50 p-3 rounded border-l-4 border-green-500">
-                  <p><strong>Q: Who owns the wallet?</strong></p>
-                  <p className="text-sm mt-1">A: Humans own wallets (EOAs) with private keys. Smart contracts have no owners - they're autonomous programs.</p>
-                </div>
-                
-                <div className="bg-purple-50 p-3 rounded border-l-4 border-purple-500">
-                  <p><strong>Q: Are merchants different users?</strong></p>
-                  <p className="text-sm mt-1">A: Yes! Each merchant, vendor, customer is a separate human with their own wallet address.</p>
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="text-xl font-medium mb-3">🏗️ The Architecture</h3>
-              <div className="bg-gray-50 p-4 rounded">
-                <div className="space-y-3">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 bg-blue-500 rounded mr-3"></div>
-                    <span><strong>Ethereum Blockchain:</strong> The foundation layer</span>
-                  </div>
-                  <div className="flex items-center ml-4">
-                    <div className="w-4 h-4 bg-green-500 rounded mr-3"></div>
-                    <span><strong>ETH Currency:</strong> Flows between accounts</span>
-                  </div>
-                  <div className="flex items-center ml-4">
-                    <div className="w-4 h-4 bg-purple-500 rounded mr-3"></div>
-                    <span><strong>Smart Contracts:</strong> Autonomous programs</span>
-                  </div>
-                  <div className="flex items-center ml-4">
-                    <div className="w-4 h-4 bg-orange-500 rounded mr-3"></div>
-                    <span><strong>EOAs (Wallets):</strong> Human-controlled accounts</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
+        <div className="grid md:grid-cols-2 gap-6">
           <div>
-            <h3 className="text-xl font-medium mb-3">⚡ How the Attack Works</h3>
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="bg-red-50 p-4 rounded border-l-4 border-red-500">
-                <h4 className="font-medium mb-2">1. Initial Setup</h4>
-                <p className="text-sm">
-                  Humans deposit ETH into smart contract. Contract tracks balances internally but makes vulnerable external calls.
-                </p>
-              </div>
-              <div className="bg-yellow-50 p-4 rounded border-l-4 border-yellow-500">
-                <h4 className="font-medium mb-2">2. The Exploit</h4>
-                <p className="text-sm">
-                  Attacker's wallet receives ETH from contract, then immediately calls back into the same contract before it updates its internal records.
-                </p>
-              </div>
-              <div className="bg-orange-50 p-4 rounded border-l-4 border-orange-500">
-                <h4 className="font-medium mb-2">3. The Damage</h4>
-                <p className="text-sm">
-                  Contract sends ETH multiple times to attacker's wallet, draining the contract and affecting all other users.
-                </p>
-              </div>
-            </div>
+            <h3 className="text-xl font-medium mb-3">🔍 What We Analyze</h3>
+            <ul className="space-y-2 text-gray-700">
+              <li className="flex items-start">
+                <span className="text-red-500 mr-2">🔄</span>
+                <span><strong>Reentrancy:</strong> External calls before state updates</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-yellow-500 mr-2">📊</span>
+                <span><strong>Integer Overflow:</strong> Arithmetic without SafeMath</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-purple-500 mr-2">🔐</span>
+                <span><strong>Access Control:</strong> Missing authorization checks</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-blue-500 mr-2">🎭</span>
+                <span><strong>tx.origin:</strong> Phishing-vulnerable patterns</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-orange-500 mr-2">⚠️</span>
+                <span><strong>Unchecked Calls:</strong> Silent failure risks</span>
+              </li>
+            </ul>
           </div>
-
-          <div className="bg-indigo-50 p-4 rounded border-l-4 border-indigo-500">
-            <h3 className="text-xl font-medium mb-3">🧠 Better Analogy: Online Banking Glitch</h3>
-            <p className="mb-3">
-              Imagine an online banking website (smart contract) with a flawed withdrawal system. When you request money online, the system transfers funds to your account but updates its internal records AFTER the transfer completes.
-            </p>
-            <p className="mb-3">
-              A clever hacker (attacker) realizes they can rapidly click "withdraw" multiple times while the first request is still processing, effectively getting the same money sent to their account multiple times.
-            </p>
-            <p className="mb-3">
-              <strong>Key Point:</strong> No physical ATM machine exists - it's all happening through websites and digital transactions, just like how you bank online today.
-            </p>
-            <p>
-              The banking system's digital vault (smart contract) gets drained, and other customers (honest users) can't access their funds.
-            </p>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded border-l-4 border-gray-500">
-            <h3 className="text-xl font-medium mb-3">🌍 Where Does This Actually Happen?</h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <h4 className="font-semibold mb-2">Physical Reality:</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• You sit at your computer/phone</li>
-                  <li>• Visit a website (like Uniswap, OpenSea)</li>
-                  <li>• Website connects to your MetaMask wallet</li>
-                  <li>• You click "Deposit ETH" or "Buy Item"</li>
-                  <li>• Your wallet sends transaction to Ethereum</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2">Behind the Scenes:</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• Transaction broadcast to Ethereum network</li>
-                  <li>• Thousands of computers process it</li>
-                  <li>• Smart contract code executes automatically</li>
-                  <li>• ETH balance updated in contract's memory</li>
-                  <li>• All records stored on blockchain forever</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
+          
           <div>
-            <h3 className="text-xl font-medium mb-3">🛡️ The Solution: Secure Smart Contract Pattern</h3>
-            <div className="bg-green-50 p-4 rounded font-mono text-sm border-l-4 border-green-500">
-              <pre>{`// SECURE PATTERN: Update internal records BEFORE sending ETH
-function withdraw(uint amount) public {
-    require(balances[msg.sender] >= amount);
-    
-    // 1. Update the smart contract's internal records FIRST
-    balances[msg.sender] -= amount;
-    
-    // 2. THEN send ETH to the user's wallet
-    (bool success, ) = msg.sender.call{value: amount}("");
-    require(success);
-}`}</pre>
-            </div>
+            <h3 className="text-xl font-medium mb-3">🎯 Interactive Testing</h3>
+            <ul className="space-y-2 text-gray-700">
+              <li className="flex items-start">
+                <span className="text-green-500 mr-2">1.</span>
+                <span>Paste your smart contract code</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-green-500 mr-2">2.</span>
+                <span>Run automated vulnerability analysis</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-green-500 mr-2">3.</span>
+                <span>Select detected vulnerabilities to test</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-green-500 mr-2">4.</span>
+                <span>Watch step-by-step attack simulations</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-green-500 mr-2">5.</span>
+                <span>Learn how to fix the issues</span>
+              </li>
+            </ul>
           </div>
+        </div>
+
+        <div className="mt-6 bg-yellow-50 p-4 rounded-lg border-2 border-yellow-300">
+          <h3 className="text-lg font-bold mb-2 text-yellow-800">⚠️ Important Disclaimer</h3>
+          <p className="text-yellow-700">
+            This tool provides basic pattern-based vulnerability detection for educational purposes. 
+            It's not a substitute for professional security audits. Always have your production smart contracts 
+            audited by experienced security professionals before deploying to mainnet.
+          </p>
         </div>
       </div>
     </div>
   );
 };
 
-export default ReentrancyVisualization;
+export default SmartContractVulnerabilityPlatform;
