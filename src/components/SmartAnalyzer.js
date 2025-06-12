@@ -1,3 +1,4 @@
+// src/components/SmartAnalyzer.js
 import { useState, useEffect } from 'react';
 
 const EnhancedSmartContractPlatform = () => {
