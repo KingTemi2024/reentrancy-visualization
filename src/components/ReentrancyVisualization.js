@@ -1,3 +1,4 @@
+// src/components/ReentrancyVisualization.js
 import { useState } from 'react';
 
 const SmartContractVulnerabilityPlatform = () => {
