@@ -7,9 +7,13 @@ const NavigationMenu = memo(({ onNavigationClick, currentPage }) => (
     <div className="flex flex-wrap justify-center gap-4">
       <button 
         onClick={() => onNavigationClick('EnhancedSmartContractPlatform')}
-        className="px-6 py-3 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-semibold shadow-md hover:shadow-lg transform hover:scale-105"
+        className={`px-6 py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-colors ${
+          currentPage === 'EnhancedSmartContractPlatform' 
+            ? 'bg-yellow-400 text-purple-800 border-2 border-yellow-300 cursor-default'
+            : 'bg-white text-blue-600 hover:bg-blue-50'
+        }`}
       >
-        🏠 Enhanced Platform
+        🏠 Enhanced Platform {currentPage === 'EnhancedSmartContractPlatform' && '(CURRENT)'}
       </button>
       <button 
         onClick={() => onNavigationClick('SmartAnalyzer')}
@@ -23,21 +27,33 @@ const NavigationMenu = memo(({ onNavigationClick, currentPage }) => (
       </button>
       <button 
         onClick={() => onNavigationClick('SmartContractVulnerabilityPlatform')}
-        className="px-6 py-3 bg-white text-orange-600 rounded-lg hover:bg-orange-50 transition-colors font-semibold shadow-md hover:shadow-lg transform hover:scale-105"
+        className={`px-6 py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-colors ${
+          currentPage === 'SmartContractVulnerabilityPlatform' 
+            ? 'bg-yellow-400 text-purple-800 border-2 border-yellow-300 cursor-default'
+            : 'bg-white text-orange-600 hover:bg-orange-50'
+        }`}
       >
-        🛡️ Vulnerability Platform
+        🛡️ Vulnerability Platform {currentPage === 'SmartContractVulnerabilityPlatform' && '(CURRENT)'}
       </button>
       <button 
         onClick={() => onNavigationClick('ReentrancyVisualization')}
-        className="px-6 py-3 bg-white text-red-600 rounded-lg hover:bg-red-50 transition-colors font-semibold shadow-md hover:shadow-lg transform hover:scale-105"
+        className={`px-6 py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-colors ${
+          currentPage === 'ReentrancyVisualization' 
+            ? 'bg-yellow-400 text-purple-800 border-2 border-yellow-300 cursor-default'
+            : 'bg-white text-red-600 hover:bg-red-50'
+        }`}
       >
-        🎯 Reentrancy Viz
+        🎯 Reentrancy Viz {currentPage === 'ReentrancyVisualization' && '(CURRENT)'}
       </button>
       <button 
         onClick={() => onNavigationClick('SmartContractPlatform')}
-        className="px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-purple-50 transition-colors font-semibold shadow-md hover:shadow-lg transform hover:scale-105"
+        className={`px-6 py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-colors ${
+          currentPage === 'SmartContractPlatform' 
+            ? 'bg-yellow-400 text-purple-800 border-2 border-yellow-300 cursor-default'
+            : 'bg-white text-purple-600 hover:bg-purple-50'
+        }`}
       >
-        ⚡ Vulnerability Tester
+        ⚡ Vulnerability Tester {currentPage === 'SmartContractPlatform' && '(CURRENT)'}
       </button>
     </div>
     <p className="text-white text-center mt-4 opacity-90">
@@ -63,16 +79,21 @@ const CodeMetricsCard = memo(({ title, value, description, color, icon }) => (
 
 CodeMetricsCard.displayName = 'CodeMetricsCard';
 
-const SmartAnalyzer = () => {
+const SmartAnalyzer = ({ onNavigationClick, currentPage = 'SmartAnalyzer' }) => {
   const [contractCode, setContractCode] = useState('');
   const [analysisResults, setAnalysisResults] = useState(null);
   const [selectedMetric, setSelectedMetric] = useState('overview');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  // Default navigation handler if none provided
   const handleNavigation = useCallback((componentName) => {
-    console.log(`Navigating to: ${componentName}`);
-    alert(`Navigation to ${componentName} - This would use React Router in a full application`);
-  }, []);
+    if (onNavigationClick) {
+      onNavigationClick(componentName);
+    } else {
+      console.log(`Navigation to: ${componentName}`);
+      alert(`Navigation to ${componentName} - This would use React Router in a full application`);
+    }
+  }, [onNavigationClick]);
 
   // Advanced analysis patterns
   const analysisPatterns = useMemo(() => ({
@@ -339,7 +360,7 @@ contract AdvancedDeFiProtocol is Ownable, ReentrancyGuard {
 
   return (
     <div className="p-6 max-w-7xl mx-auto bg-gray-50 rounded-lg shadow-md">
-      <NavigationMenu onNavigationClick={handleNavigation} currentPage="SmartAnalyzer" />
+      <NavigationMenu onNavigationClick={handleNavigation} currentPage={currentPage} />
 
       <h1 className="text-4xl font-bold text-center mb-6 text-gray-800">
         🔍 Smart Contract Code Analyzer
