@@ -1,4 +1,5 @@
 // src/components/EnhancedSmartContractPlatform.js
+
 import React, { useState, useCallback, useMemo, memo } from 'react';
 
 const NavigationMenu = memo(({ onNavigationClick, currentPage }) => (
