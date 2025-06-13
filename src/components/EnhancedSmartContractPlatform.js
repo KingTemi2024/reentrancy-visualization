@@ -73,13 +73,10 @@ const EnhancedSmartContractPlatform = ({ onNavigationClick, currentPage = 'Enhan
   const [recommendations, setRecommendations] = useState([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Default navigation handler if none provided
+  // Navigation handler - no more placeholder alerts
   const handleNavigation = useCallback((componentName) => {
     if (onNavigationClick) {
       onNavigationClick(componentName);
-    } else {
-      console.log(`Navigation to: ${componentName}`);
-      alert(`Navigation to ${componentName} - This would use React Router in a full application`);
     }
   }, [onNavigationClick]);
 
