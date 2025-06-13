@@ -2,7 +2,7 @@
   "name": "reentrancy-visualization",
   "version": "0.1.0",
   "description": "Interactive visualization explaining reentrancy attacks in Ethereum smart contracts",
-  "homepage": "https://KingTemi2024.github.io/reentrancy-visualization",
+  "homepage": ".",
   "private": true,
   "main": "src/index.js",
   "engines": {
