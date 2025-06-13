@@ -1,17 +1,28 @@
 {
-  "buildCommand": "npm ci && npm run build",
-  "installCommand": "npm ci --prefer-offline --no-audit --no-fund",
+  "version": 2,
+  "name": "reentrancy-visualization",
+  "buildCommand": "CI=false npm run build",
+  "outputDirectory": "build",
   "framework": "create-react-app",
-  "regions": ["iad1", "sfo1"],
-  "functions": {
-    "app/**/*.js": {
-      "includeFiles": "public/**"
+  "installCommand": "npm ci",
+  "env": {
+    "CI": "false"
+  },
+  "build": {
+    "env": {
+      "CI": "false"
     }
   },
-  "rewrites": [
+  "functions": {},
+  "routes": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "/static/(.*)",
+      "headers": { "cache-control": "s-maxage=31536000,immutable" },
+      "dest": "/static/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
