@@ -57,12 +57,11 @@ const EnhancedSmartContractPlatform = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const handleNavigation = useCallback((componentName) => {
-    // In a real app, this would use React Router
     console.log(`Navigating to: ${componentName}`);
     alert(`Navigation to ${componentName} - This would use React Router in a full application`);
   }, []);
 
-  // Enhanced vulnerability patterns with AI-powered analysis
+  // Enhanced vulnerability patterns
   const enhancedPatterns = useMemo(() => ({
     reentrancy: {
       name: "Reentrancy Vulnerabilities",
@@ -118,57 +117,6 @@ const EnhancedSmartContractPlatform = () => {
     }
   }), []);
 
-  const analyzeContract = useCallback(async () => {
-    if (!contractCode.trim()) {
-      alert("Please paste some smart contract code first");
-      return;
-    }
-
-    setIsAnalyzing(true);
-    
-    // Simulate AI analysis delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    const results = [];
-    let totalRisk = 0;
-
-    Object.entries(enhancedPatterns).forEach(([key, pattern]) => {
-      const allMatches = pattern.patterns.flatMap(p => 
-        [...(contractCode.match(p) || [])]
-      );
-
-      if (allMatches.length > 0) {
-        const severityScore = {
-          'CRITICAL': 10,
-          'HIGH': 8,
-          'MEDIUM': 5,
-          'LOW': 2
-        }[pattern.severity];
-
-        totalRisk += severityScore * allMatches.length * pattern.confidence;
-
-        results.push({
-          id: key,
-          name: pattern.name,
-          severity: pattern.severity,
-          confidence: pattern.confidence,
-          matches: allMatches.length,
-          aiAnalysis: pattern.aiAnalysis,
-          codeSnippets: allMatches.slice(0, 3)
-        });
-      }
-    });
-
-    setAnalysisResults(results);
-    setRiskScore(Math.min(Math.round(totalRisk), 100));
-    
-    // Generate AI recommendations
-    const newRecommendations = generateRecommendations(results);
-    setRecommendations(newRecommendations);
-    
-    setIsAnalyzing(false);
-  }, [contractCode, enhancedPatterns]);
-
   const generateRecommendations = useCallback((results) => {
     const recs = [];
     
@@ -220,6 +168,57 @@ contract SafeContract {
 
     return recs;
   }, []);
+
+  const analyzeContract = useCallback(async () => {
+    if (!contractCode.trim()) {
+      alert("Please paste some smart contract code first");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    
+    // Simulate AI analysis delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    const results = [];
+    let totalRisk = 0;
+
+    Object.entries(enhancedPatterns).forEach(([key, pattern]) => {
+      const allMatches = pattern.patterns.flatMap(p => 
+        [...(contractCode.match(p) || [])]
+      );
+
+      if (allMatches.length > 0) {
+        const severityScore = {
+          'CRITICAL': 10,
+          'HIGH': 8,
+          'MEDIUM': 5,
+          'LOW': 2
+        }[pattern.severity];
+
+        totalRisk += severityScore * allMatches.length * pattern.confidence;
+
+        results.push({
+          id: key,
+          name: pattern.name,
+          severity: pattern.severity,
+          confidence: pattern.confidence,
+          matches: allMatches.length,
+          aiAnalysis: pattern.aiAnalysis,
+          codeSnippets: allMatches.slice(0, 3)
+        });
+      }
+    });
+
+    setAnalysisResults(results);
+    setRiskScore(Math.min(Math.round(totalRisk), 100));
+    
+    // Generate AI recommendations
+    const newRecommendations = generateRecommendations(results);
+    setRecommendations(newRecommendations);
+    
+    setIsAnalyzing(false);
+  }, [contractCode, enhancedPatterns, generateRecommendations]);
 
   const getRiskColor = (score) => {
     if (score >= 80) return 'text-red-600 bg-red-100';
