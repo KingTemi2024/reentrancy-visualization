@@ -104,6 +104,16 @@ const EnhancedSmartContractPlatform = ({ onNavigationClick, currentPage }) => {
       severity: "HIGH",
       confidence: 0.85,
       aiAnalysis: "Potential arithmetic overflow without protection"
+    },
+    uncheckedCall: {
+      name: "Unchecked Low-Level Calls",
+      patterns: [
+        /\.call\{[^}]*\}[^;]*;(?!\s*require)/gi,
+        /\.call\([^)]*\)(?!\s*;?\s*require)/gi
+      ],
+      severity: "MEDIUM",
+      confidence: 0.80,
+      aiAnalysis: "Low-level calls without return value checks"
     }
   }), []);
 
@@ -113,29 +123,136 @@ const EnhancedSmartContractPlatform = ({ onNavigationClick, currentPage }) => {
     if (results.some(r => r.id === 'reentrancy')) {
       recs.push({
         priority: 'CRITICAL',
-        title: 'Implement Reentrancy Guards',
-        description: 'Use OpenZeppelin ReentrancyGuard or checks-effects-interactions pattern',
-        code: `import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+        title: 'Fix Reentrancy Vulnerability in withdraw()',
+        description: 'Your withdraw function is vulnerable to reentrancy attacks. Update state before external calls.',
+        impact: 'Prevents attackers from draining contract funds through recursive calls',
+        originalProblem: 'External call before state update allows recursive exploitation',
+        code: `// ❌ VULNERABLE CODE (Current):
+function withdraw(uint256 amount) external {
+    require(balances[msg.sender] >= amount, "Insufficient balance");
+    (bool success, ) = msg.sender.call{value: amount}(""); // ❌ External call first
+    require(success, "Transfer failed");
+    balances[msg.sender] -= amount; // ❌ State update after external call
+}
 
-contract SecureContract is ReentrancyGuard {
-    function withdraw() external nonReentrant {
-        // Safe withdrawal logic
-    }
-}`
+// ✅ SECURE FIX:
+function withdraw(uint256 amount) external nonReentrant {
+    require(balances[msg.sender] >= amount, "Insufficient balance");
+    
+    // ✅ Update state FIRST (Checks-Effects-Interactions pattern)
+    balances[msg.sender] -= amount;
+    
+    // ✅ External call LAST
+    (bool success, ) = msg.sender.call{value: amount}("");
+    require(success, "Transfer failed");
+}
+
+// Add to your contract:
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+contract YourContract is ReentrancyGuard { ... }`
       });
     }
 
     if (results.some(r => r.id === 'accessControl')) {
       recs.push({
         priority: 'HIGH',
-        title: 'Add Access Control',
-        description: 'Implement proper authorization mechanisms',
-        code: `import "@openzeppelin/contracts/access/Ownable.sol";
+        title: 'Add Access Control to Admin Functions',
+        description: 'Functions like emergencyWithdraw() and setOwner() are missing access controls',
+        impact: 'Prevents unauthorized users from draining funds or taking ownership',
+        originalProblem: 'Public functions without onlyOwner modifier allow anyone to call them',
+        code: `// ❌ VULNERABLE CODE (Current):
+function emergencyWithdraw() external {
+    payable(msg.sender).transfer(address(this).balance); // ❌ Anyone can call!
+}
 
-contract SecureContract is Ownable {
-    function adminFunction() external onlyOwner {
-        // Admin-only logic
+function setOwner(address newOwner) external {
+    owner = newOwner; // ❌ Anyone can become owner!
+}
+
+// ✅ SECURE FIX:
+modifier onlyOwner() {
+    require(msg.sender == owner, "Not the owner");
+    _;
+}
+
+function emergencyWithdraw() external onlyOwner {
+    payable(msg.sender).transfer(address(this).balance); // ✅ Only owner can call
+}
+
+function setOwner(address newOwner) external onlyOwner {
+    require(newOwner != address(0), "Invalid address");
+    owner = newOwner; // ✅ Only current owner can change ownership
+}
+
+// Or use OpenZeppelin:
+import "@openzeppelin/contracts/access/Ownable.sol";
+contract YourContract is Ownable { ... }`
+      });
     }
+
+    if (results.some(r => r.id === 'integerOverflow')) {
+      recs.push({
+        priority: 'HIGH',
+        title: 'Fix Integer Overflow in mint() Function',
+        description: 'Using Solidity 0.7.0 without SafeMath allows arithmetic overflow',
+        impact: 'Prevents attackers from creating unlimited tokens through overflow',
+        originalProblem: 'Old Solidity version + unchecked arithmetic = overflow vulnerability',
+        code: `// ❌ VULNERABLE CODE (Current - Solidity 0.7.0):
+function mint(address to, uint256 amount) external {
+    balances[to] += amount;    // ❌ Can overflow!
+    totalSupply += amount;     // ❌ Can overflow!
+}
+
+// ✅ SECURE FIX Option 1 - Upgrade Solidity:
+pragma solidity ^0.8.0; // ✅ Automatic overflow protection
+
+function mint(address to, uint256 amount) external onlyOwner {
+    balances[to] += amount;    // ✅ Will revert on overflow
+    totalSupply += amount;     // ✅ Will revert on overflow
+}
+
+// ✅ SECURE FIX Option 2 - Use SafeMath (if staying on 0.7.0):
+import "@openzeppelin/contracts/math/SafeMath.sol";
+
+using SafeMath for uint256;
+
+function mint(address to, uint256 amount) external onlyOwner {
+    balances[to] = balances[to].add(amount);      // ✅ Safe addition
+    totalSupply = totalSupply.add(amount);        // ✅ Safe addition
+}`
+      });
+    }
+
+    if (results.some(r => r.id === 'uncheckedCall')) {
+      recs.push({
+        priority: 'MEDIUM',
+        title: 'Check Return Values of Low-Level Calls',
+        description: 'The payUser() function makes unchecked low-level calls that can fail silently',
+        impact: 'Prevents silent failures that could lead to incorrect state updates',
+        originalProblem: 'Low-level calls without checking return values can fail without reverting',
+        code: `// ❌ VULNERABLE CODE (Current):
+function payUser(address user, uint256 amount) external {
+    user.call{value: amount}(""); // ❌ Doesn't check if call succeeded
+    balances[user] += amount;     // ❌ Updates balance even if transfer failed
+}
+
+// ✅ SECURE FIX:
+function payUser(address user, uint256 amount) external onlyOwner {
+    require(user != address(0), "Invalid address");
+    require(address(this).balance >= amount, "Insufficient contract balance");
+    
+    // ✅ Check return value and revert on failure
+    (bool success, ) = user.call{value: amount}("");
+    require(success, "Transfer failed");
+    
+    // ✅ Only update state if transfer succeeded
+    balances[user] += amount;
+}
+
+// ✅ ALTERNATIVE - Use transfer() for automatic revert:
+function payUser(address user, uint256 amount) external onlyOwner {
+    payable(user).transfer(amount); // ✅ Automatically reverts on failure
+    balances[user] += amount;
 }`
       });
     }
@@ -280,9 +397,15 @@ contract ExampleDeFiProtocol {
                 {analysisResults.filter(r => r.severity === 'MEDIUM').length}
               </div>
             </div>
-            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-              <div className="text-green-600 font-semibold">AI Confidence</div>
-              <div className="text-2xl font-bold text-green-800">
+            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+              <div className="text-yellow-600 font-semibold">Medium Issues</div>
+              <div className="text-2xl font-bold text-yellow-800">
+                {analysisResults.filter(r => r.severity === 'MEDIUM').length}
+              </div>
+            </div>
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <div className="text-blue-600 font-semibold">AI Confidence</div>
+              <div className="text-2xl font-bold text-blue-800">
                 {analysisResults.length > 0 
                   ? Math.round(analysisResults.reduce((acc, r) => acc + r.confidence, 0) / analysisResults.length * 100)
                   : 0}%
@@ -433,13 +556,27 @@ contract ExampleDeFiProtocol {
               {recommendations.length > 0 ? (
                 <div className="space-y-6">
                   {recommendations.map((rec, index) => (
-                    <div key={index} className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg border border-green-300">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h4 className="text-lg font-semibold text-green-800">{rec.title}</h4>
-                          <p className="text-gray-700">{rec.description}</p>
+                    <div key={index} className="bg-gradient-to-r from-red-50 to-orange-50 p-6 rounded-lg border-2 border-red-300">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1">
+                          <h4 className="text-xl font-bold text-red-800 mb-2">{rec.title}</h4>
+                          <p className="text-gray-700 mb-3">{rec.description}</p>
+                          
+                          {rec.originalProblem && (
+                            <div className="bg-red-100 p-3 rounded-lg mb-3">
+                              <h5 className="font-semibold text-red-700 mb-1">🚨 Problem Identified:</h5>
+                              <p className="text-red-600 text-sm">{rec.originalProblem}</p>
+                            </div>
+                          )}
+                          
+                          {rec.impact && (
+                            <div className="bg-blue-100 p-3 rounded-lg mb-3">
+                              <h5 className="font-semibold text-blue-700 mb-1">🛡️ Security Impact:</h5>
+                              <p className="text-blue-600 text-sm">{rec.impact}</p>
+                            </div>
+                          )}
                         </div>
-                        <span className={`px-3 py-1 rounded text-white text-sm font-semibold ${
+                        <span className={`px-4 py-2 rounded-lg text-white text-sm font-bold ml-4 ${
                           rec.priority === 'CRITICAL' ? 'bg-red-600' : 
                           rec.priority === 'HIGH' ? 'bg-orange-600' : 'bg-yellow-600'
                         }`}>
@@ -447,8 +584,9 @@ contract ExampleDeFiProtocol {
                         </span>
                       </div>
                       
-                      <div className="bg-gray-900 p-4 rounded text-green-400 font-mono text-sm overflow-x-auto">
-                        <pre>{rec.code}</pre>
+                      <div className="bg-gray-900 p-4 rounded-lg">
+                        <h5 className="text-green-400 font-semibold mb-2">📝 Code Fix:</h5>
+                        <pre className="text-green-400 font-mono text-sm overflow-x-auto whitespace-pre-wrap">{rec.code}</pre>
                       </div>
                     </div>
                   ))}
