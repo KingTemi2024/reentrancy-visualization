@@ -1,0 +1,17 @@
+{
+  "buildCommand": "npm ci && npm run build",
+  "installCommand": "npm ci --prefer-offline --no-audit --no-fund",
+  "framework": "create-react-app",
+  "regions": ["iad1", "sfo1"],
+  "functions": {
+    "app/**/*.js": {
+      "includeFiles": "public/**"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
