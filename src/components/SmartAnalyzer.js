@@ -91,7 +91,6 @@ const SmartAnalyzer = ({ onNavigationClick, currentPage = 'SmartAnalyzer' }) => 
       onNavigationClick(componentName);
     } else {
       console.log(`Navigation to: ${componentName}`);
-      alert(`Navigation to ${componentName} - This would use React Router in a full application`);
     }
   }, [onNavigationClick]);
 
